@@ -1,0 +1,244 @@
+#!/usr/bin/python
+
+# The BSD License
+#
+# Copyright (c) 2011, Eric Davis
+#
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# Redistributions of source code must retain the above copyright notice, this
+# list of conditions and the following disclaimer.
+#
+# Redistributions in binary form must reproduce the above copyright notice,
+# this list of conditions and the following disclaimer in the documentation
+# and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+#
+# Home: http://code.google.com/p/bits
+#
+# Author: Eric Davis <edavis@insanum.com> <http://www.insanum.com>
+#
+
+import sys, getopt
+
+class CLR:
+    useColor = True
+    def __str__(self):
+        if self.useColor: return self.color
+        else: return ""
+
+class CLR_NRM(CLR):   color = "\033[0m"
+class CLR_BLK(CLR):   color = "\033[0;30m"
+class CLR_BRBLK(CLR): color = "\033[30;1m"
+class CLR_RED(CLR):   color = "\033[0;31m"
+class CLR_BRRED(CLR): color = "\033[31;1m"
+class CLR_GRN(CLR):   color = "\033[0;32m"
+class CLR_BRGRN(CLR): color = "\033[32;1m"
+class CLR_YLW(CLR):   color = "\033[0;33m"
+class CLR_BRYLW(CLR): color = "\033[33;1m"
+class CLR_BLU(CLR):   color = "\033[0;34m"
+class CLR_BRBLU(CLR): color = "\033[34;1m"
+class CLR_MAG(CLR):   color = "\033[0;35m"
+class CLR_BRMAG(CLR): color = "\033[35;1m"
+class CLR_CYN(CLR):   color = "\033[0;36m"
+class CLR_BRCYN(CLR): color = "\033[36;1m"
+class CLR_WHT(CLR):   color = "\033[0;37m"
+class CLR_BRWHT(CLR): color = "\033[37;1m"
+
+def GetColorOpt(arg):
+    if   (arg == "default"):  return CLR_NRM()
+    elif (arg == "black"):    return CLR_BLK()
+    elif (arg == "bblack"):   return CLR_BRBLK()
+    elif (arg == "red"):      return CLR_RED()
+    elif (arg == "bred"):     return CLR_BRRED()
+    elif (arg == "green"):    return CLR_GRN()
+    elif (arg == "bgreen"):   return CLR_BRGRN()
+    elif (arg == "yellow"):   return CLR_YLW()
+    elif (arg == "byellow"):  return CLR_BRYLW()
+    elif (arg == "blue"):     return CLR_BLU()
+    elif (arg == "bblue"):    return CLR_BRBLU()
+    elif (arg == "magenta"):  return CLR_MAG()
+    elif (arg == "bmagenta"): return CLR_BRMAG()
+    elif (arg == "cyan"):     return CLR_CYN()
+    elif (arg == "bcyan"):    return CLR_BRCYN()
+    elif (arg == "white"):    return CLR_WHT()
+    elif (arg == "bwhite"):   return CLR_BRWHT()
+    else:
+        print("ERROR: Invalid color", arg)
+        Usage()
+
+# Default Colors
+ValueColor  = CLR_BRYLW()
+BorderColor = CLR_MAG()
+BitColor    = CLR_CYN()
+NormalColor = CLR_NRM()
+
+ULONG_MAX = 4294967295
+inputLoop = False
+Border, Value = range(2)
+
+def PrintMsg(msg, color=NormalColor):
+    if CLR.useColor:
+        sys.stdout.write(str(color))
+        sys.stdout.write(msg)
+        sys.stdout.write(str(NormalColor))
+    else:
+        sys.stdout.write(msg)
+    sys.stdout.flush()
+
+def Usage():
+    PrintMsg("Usage: bits [<args>] [<value> ...]\n")
+    PrintMsg("\n")
+    PrintMsg("  -h          this text\n")
+    PrintMsg("  -n          no colors\n")
+    PrintMsg("  -i          loop and prompt for new values\n")
+    PrintMsg("  --vc=<clr>  value color (default byellow)\n")
+    PrintMsg("  --bc=<clr>  border color (default magenta)\n")
+    PrintMsg("  --ic=<clr>  bit color (default cyan)\n")
+    PrintMsg("  --nc=<clr>  normal color (terminal default)\n")
+    PrintMsg("\n")
+    PrintMsg("  <value>     dec:  decdigit+\n")
+    PrintMsg("              hex:  '0' ('x'|'X') hexdigit+\n")
+    PrintMsg("              oct:  '0' ('o'|'O') octdigit+ | '0' octdigit+\n")
+    PrintMsg("              bin:  '0' ('b'|'B') bindigit+\n")
+    PrintMsg("              bits: comma separated and/or ranges\n")
+    PrintMsg("                    2,6,13-17,30\n")
+    PrintMsg("\n")
+    PrintMsg("  <clr>       default, black, red, green, yellow\n")
+    PrintMsg("              blue, magenta, cyan, white\n")
+    PrintMsg("              NOTE: prefix a 'b' for bright (i.e. byellow)\n")
+    sys.exit(1)
+
+def BS(n, v):
+    return ((v & (1 << n)) != 0)
+
+def RN(n):
+    return reversed(range(n))
+
+def PCol(rowType, n, bit, fmt, val, sep, bitVal=0):
+    if (bit == (n - 1)):
+        PrintMsg("%s" % sep, BorderColor)
+    if (rowType == Value):
+        if (bitVal == 1):
+            PrintMsg(fmt % val, BitColor)
+        else:
+            PrintMsg(fmt % val, NormalColor)
+    else: # (rowType == Border)
+        PrintMsg(fmt % val, BorderColor)
+    if ((bit % 8) == 0):
+        PrintMsg("%s" % sep, BorderColor)
+        if not bit:
+            PrintMsg("\n")
+
+def BadBitArg(b):
+    PrintMsg("ERROR: Invalid bit value \"%s\"\n" % b)
+    Usage()
+
+def StrToBit(b):
+    v = int(b, 0)
+    if ((v < 0) or (v > 64)):
+        BadBitArg(b)
+    return v
+
+def GetBitArgsValue(arg):
+    bitArgsValue = 0
+    for bitArg in arg.split(","):
+        if not bitArg: continue
+        try:
+            v = StrToBit(bitArg)
+            bitArgsValue = (bitArgsValue | (0x1 << v))
+        except:
+            bitRange = bitArg.split("-")
+            if (len(bitRange) != 2):
+                BadBitArg(bitArg)
+            try:
+                v1 = StrToBit(bitRange[0])
+                v2 = StrToBit(bitRange[1])
+                if (v1 > v2):
+                    BadBitArg(bitArg)
+                for r in range(v1, (v2+1)):
+                    bitArgsValue = (bitArgsValue | (0x1 << r))
+            except:
+                BadBitArg(bitArg)
+    return bitArgsValue
+
+def GetUserInput():
+    try:
+        sys.stdout.write("value: ")
+        sys.stdout.flush()
+        userIn = sys.stdin.readline()
+        return userIn.split()
+    except:
+        PrintMsg("\n")
+        sys.exit(1)
+
+try:
+    opts, args = getopt.getopt(sys.argv[1:], 'hni', ['vc=','bc=','ic=','nc='])
+except:
+    Usage()
+
+for opt, arg in opts:
+    if (opt == '-h'):
+        Usage()
+    elif (opt == '-n'):
+        CLR.useColor = False
+    elif (opt == '-i'):
+        inputLoop = True
+    elif (opt == '--vc'):
+        ValueColor = GetColorOpt(arg)
+    elif (opt == '--bc'):
+        BorderColor = GetColorOpt(arg)
+    elif (opt == '--ic'):
+        BitColor = GetColorOpt(arg)
+    elif (opt == '--nc'):
+        NormalColor = GetColorOpt(arg)
+
+while True:
+
+    if (len(args) < 1):
+        args = GetUserInput()
+
+    for i in args:
+
+        if i.find(",") != -1 or i.find("-") != -1:
+            v = GetBitArgsValue(i)
+        else:
+            v = int(i, 0)
+
+        if (v > ULONG_MAX):
+            n   = 64
+            fmt = "0x%016x"
+        else:
+            n   = 32
+            fmt = "0x%08x"
+
+        PrintMsg(("--> " + fmt + " <--\n") % v, ValueColor)
+
+        # PCol (rowType, n, bit, fmt, val, sep, bitVal)
+        for b in RN(n): PCol(Border, n, b, "%s", "-",      "-")
+        for b in RN(n): PCol(Value,  n, b, "%d", BS(b,v),  "|", BS(b,v))
+        for b in RN(n): PCol(Border, n, b, "%s", "-",      "|")
+        for b in RN(n): PCol(Value,  n, b, "%d", (b / 10), "|", BS(b,v))
+        for b in RN(n): PCol(Value,  n, b, "%d", (b % 10), "|", BS(b,v))
+        for b in RN(n): PCol(Border, n, b, "%s", "-",      "-")
+
+    if inputLoop:
+        args = GetUserInput()
+    else:
+        break
+
