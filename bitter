@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # The BSD License
 #
@@ -36,69 +36,53 @@
 
 import sys, getopt
 
+useClr = True
+
 class CLR:
-    useColor = True
+    clrCap = False
+    clr    = None
+
+    def __init__(self, clr):
+
+        try:
+            from colorama import Fore, Style
+            self.clrCap = True
+            if   (clr == "black"):    self.clr = Fore.BLACK
+            elif (clr == "bblack"):   self.clr = Fore.BLACK + Style.BRIGHT
+            elif (clr == "red"):      self.clr = Fore.RED
+            elif (clr == "bred"):     self.clr = Fore.RED + Style.BRIGHT
+            elif (clr == "green"):    self.clr = Fore.GREEN
+            elif (clr == "bgreen"):   self.clr = Fore.GREEN + Style.BRIGHT
+            elif (clr == "yellow"):   self.clr = Fore.YELLOW
+            elif (clr == "byellow"):  self.clr = Fore.YELLOW + Style.BRIGHT
+            elif (clr == "blue"):     self.clr = Fore.BLUE
+            elif (clr == "bblue"):    self.clr = Fore.BLUE + Style.BRIGHT
+            elif (clr == "magenta"):  self.clr = Fore.MAGENTA
+            elif (clr == "bmagenta"): self.clr = Fore.MAGENTA + Style.BRIGHT
+            elif (clr == "cyan"):     self.clr = Fore.CYAN
+            elif (clr == "bcyan"):    self.clr = Fore.CYAN + Style.BRIGHT
+            elif (clr == "white"):    self.clr = Fore.WHITE
+            elif (clr == "bwhite"):   self.clr = Fore.WHITE + Style.Bright
+            else:                     self.clr = Fore.RESET + Style.RESET_ALL
+        except ImportError:
+            return
+
     def __str__(self):
-        if self.useColor: return self.color
-        else: return ""
-
-class CLR_NRM(CLR):   color = "\033[0m"
-class CLR_BLK(CLR):   color = "\033[0;30m"
-class CLR_BRBLK(CLR): color = "\033[30;1m"
-class CLR_RED(CLR):   color = "\033[0;31m"
-class CLR_BRRED(CLR): color = "\033[31;1m"
-class CLR_GRN(CLR):   color = "\033[0;32m"
-class CLR_BRGRN(CLR): color = "\033[32;1m"
-class CLR_YLW(CLR):   color = "\033[0;33m"
-class CLR_BRYLW(CLR): color = "\033[33;1m"
-class CLR_BLU(CLR):   color = "\033[0;34m"
-class CLR_BRBLU(CLR): color = "\033[34;1m"
-class CLR_MAG(CLR):   color = "\033[0;35m"
-class CLR_BRMAG(CLR): color = "\033[35;1m"
-class CLR_CYN(CLR):   color = "\033[0;36m"
-class CLR_BRCYN(CLR): color = "\033[36;1m"
-class CLR_WHT(CLR):   color = "\033[0;37m"
-class CLR_BRWHT(CLR): color = "\033[37;1m"
-
-def GetColorOpt(arg):
-    if   (arg == "default"):  return CLR_NRM()
-    elif (arg == "black"):    return CLR_BLK()
-    elif (arg == "bblack"):   return CLR_BRBLK()
-    elif (arg == "red"):      return CLR_RED()
-    elif (arg == "bred"):     return CLR_BRRED()
-    elif (arg == "green"):    return CLR_GRN()
-    elif (arg == "bgreen"):   return CLR_BRGRN()
-    elif (arg == "yellow"):   return CLR_YLW()
-    elif (arg == "byellow"):  return CLR_BRYLW()
-    elif (arg == "blue"):     return CLR_BLU()
-    elif (arg == "bblue"):    return CLR_BRBLU()
-    elif (arg == "magenta"):  return CLR_MAG()
-    elif (arg == "bmagenta"): return CLR_BRMAG()
-    elif (arg == "cyan"):     return CLR_CYN()
-    elif (arg == "bcyan"):    return CLR_BRCYN()
-    elif (arg == "white"):    return CLR_WHT()
-    elif (arg == "bwhite"):   return CLR_BRWHT()
-    else:
-        print("ERROR: Invalid color", arg)
-        Usage()
+        if useClr and self.clrCap: return self.clr
+        else:                      return ""
 
 # Default Colors
-ValueColor  = CLR_BRYLW()
-BorderColor = CLR_MAG()
-BitColor    = CLR_CYN()
-NormalColor = CLR_NRM()
+ValueColor  = CLR("byellow")
+BorderColor = CLR("magenta")
+BitColor    = CLR("cyan")
+NormalColor = CLR("default")
 
 ULONG_MAX = 4294967295
 inputLoop = False
 Border, Value = range(2)
 
-def PrintMsg(msg, color=NormalColor):
-    if CLR.useColor:
-        sys.stdout.write(str(color))
-        sys.stdout.write(msg)
-        sys.stdout.write(str(NormalColor))
-    else:
-        sys.stdout.write(msg)
+def PrintMsg(msg, clr=NormalColor):
+    sys.stdout.write(str(clr) + msg + str(NormalColor))
     sys.stdout.flush()
 
 def Usage():
@@ -196,17 +180,17 @@ for opt, arg in opts:
     if (opt == '-h'):
         Usage()
     elif (opt == '-n'):
-        CLR.useColor = False
+        useClr = False
     elif (opt == '-i'):
         inputLoop = True
     elif (opt == '--vc'):
-        ValueColor = GetColorOpt(arg)
+        ValueColor = CLR(arg)
     elif (opt == '--bc'):
-        BorderColor = GetColorOpt(arg)
+        BorderColor = CLR(arg)
     elif (opt == '--ic'):
-        BitColor = GetColorOpt(arg)
+        BitColor = CLR(arg)
     elif (opt == '--nc'):
-        NormalColor = GetColorOpt(arg)
+        NormalColor = CLR(arg)
 
 while True:
 
