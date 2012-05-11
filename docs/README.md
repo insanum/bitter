@@ -34,5 +34,5 @@ Usage
 
 Screenshot
 ----------
-![bitter](docs/bitter.png)
+![bitter](bitter/docs/bitter.png)
 
