@@ -84,7 +84,7 @@ def PrintMsg(msg, clr=NormalColor):
     sys.stdout.flush()
 
 def Usage():
-    PrintMsg("Usage: bits [<args>] [<value> ...]\n")
+    PrintMsg("Usage: bitter [<args>] [<value> ...]\n")
     PrintMsg("\n")
     PrintMsg("  -h          this text\n")
     PrintMsg("  -n          no colors\n")
