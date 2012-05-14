@@ -60,7 +60,7 @@ class CLR:
             elif (clr == "cyan"):     self.clr = Fore.CYAN
             elif (clr == "bcyan"):    self.clr = Fore.CYAN + Style.BRIGHT
             elif (clr == "white"):    self.clr = Fore.WHITE
-            elif (clr == "bwhite"):   self.clr = Fore.WHITE + Style.Bright
+            elif (clr == "bwhite"):   self.clr = Fore.WHITE + Style.BRIGHT
             else:                     self.clr = Fore.RESET + Style.RESET_ALL
         except ImportError:
             return
