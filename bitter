@@ -84,26 +84,29 @@ def PrintMsg(msg, clr=NormalColor):
     sys.stdout.flush()
 
 def Usage():
-    PrintMsg("Usage: bitter [<args>] [<value> ...]\n")
-    PrintMsg("\n")
-    PrintMsg("  -h          this text\n")
-    PrintMsg("  -n          no colors\n")
-    PrintMsg("  -i          loop and prompt for new values\n")
-    PrintMsg("  --vc=<clr>  value color (default byellow)\n")
-    PrintMsg("  --bc=<clr>  border color (default magenta)\n")
-    PrintMsg("  --ic=<clr>  bit color (default cyan)\n")
-    PrintMsg("  --nc=<clr>  normal color (terminal default)\n")
-    PrintMsg("\n")
-    PrintMsg("  <value>     dec:  decdigit+\n")
-    PrintMsg("              hex:  '0' ('x'|'X') hexdigit+\n")
-    PrintMsg("              oct:  '0' ('o'|'O') octdigit+ | '0' octdigit+\n")
-    PrintMsg("              bin:  '0' ('b'|'B') bindigit+\n")
-    PrintMsg("              bits: comma separated and/or ranges\n")
-    PrintMsg("                    2,6,13-17,30\n")
-    PrintMsg("\n")
-    PrintMsg("  <clr>       default, black, red, green, yellow\n")
-    PrintMsg("              blue, magenta, cyan, white\n")
-    PrintMsg("              NOTE: prefix a 'b' for bright (i.e. byellow)\n")
+    sys.stdout.write('''
+Usage: bitter [<args>] [<value> ...]
+
+  -h          this text
+  -n          no colors
+  -i          loop and prompt for new values
+  --vc=<clr>  value color (default byellow)
+  --bc=<clr>  border color (default magenta)
+  --ic=<clr>  bit color (default cyan)
+  --nc=<clr>  normal color (terminal default)
+
+  <value>     dec:  decdigit+
+              hex:  '0' ('x'|'X') hexdigit+
+              oct:  '0' ('o'|'O') octdigit+ | '0' octdigit+
+              bin:  '0' ('b'|'B') bindigit+
+              bits: comma separated and/or ranges
+                    2,6,13-17,30
+
+  <clr>       default, black, red, green, yellow
+              blue, magenta, cyan, white
+              NOTE: prefix a 'b' for bright (i.e. byellow)
+
+''')
     sys.exit(1)
 
 def BS(n, v):
