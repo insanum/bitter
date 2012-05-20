@@ -34,5 +34,6 @@ Usage
 
 Screenshot
 ----------
-![bitter](bitter/raw/master/docs/bitter.png)
+
+![bitter](https://github.com/insanum/bitter/raw/master/docs/bitter.png)
 
