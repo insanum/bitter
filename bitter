@@ -36,8 +36,6 @@
 
 import sys, getopt
 
-useClr = True
-
 class CLR:
     clr = None
 
@@ -45,43 +43,52 @@ class CLR:
 
         try:
             from colorama import Fore, Style
-            if   (clr == "black"):    self.clr = Fore.BLACK
-            elif (clr == "bblack"):   self.clr = Fore.BLACK + Style.BRIGHT
-            elif (clr == "red"):      self.clr = Fore.RED
-            elif (clr == "bred"):     self.clr = Fore.RED + Style.BRIGHT
-            elif (clr == "green"):    self.clr = Fore.GREEN
-            elif (clr == "bgreen"):   self.clr = Fore.GREEN + Style.BRIGHT
-            elif (clr == "yellow"):   self.clr = Fore.YELLOW
-            elif (clr == "byellow"):  self.clr = Fore.YELLOW + Style.BRIGHT
-            elif (clr == "blue"):     self.clr = Fore.BLUE
-            elif (clr == "bblue"):    self.clr = Fore.BLUE + Style.BRIGHT
-            elif (clr == "magenta"):  self.clr = Fore.MAGENTA
+            if   (clr == "black"):    self.clr = Fore.BLACK   + Style.NORMAL
+            elif (clr == "bblack"):   self.clr = Fore.BLACK   + Style.BRIGHT
+            elif (clr == "red"):      self.clr = Fore.RED     + Style.NORMAL
+            elif (clr == "bred"):     self.clr = Fore.RED     + Style.BRIGHT
+            elif (clr == "green"):    self.clr = Fore.GREEN   + Style.NORMAL
+            elif (clr == "bgreen"):   self.clr = Fore.GREEN   + Style.BRIGHT
+            elif (clr == "yellow"):   self.clr = Fore.YELLOW  + Style.NORMAL
+            elif (clr == "byellow"):  self.clr = Fore.YELLOW  + Style.BRIGHT
+            elif (clr == "blue"):     self.clr = Fore.BLUE    + Style.NORMAL
+            elif (clr == "bblue"):    self.clr = Fore.BLUE    + Style.BRIGHT
+            elif (clr == "magenta"):  self.clr = Fore.MAGENTA + Style.NORMAL
             elif (clr == "bmagenta"): self.clr = Fore.MAGENTA + Style.BRIGHT
-            elif (clr == "cyan"):     self.clr = Fore.CYAN
-            elif (clr == "bcyan"):    self.clr = Fore.CYAN + Style.BRIGHT
-            elif (clr == "white"):    self.clr = Fore.WHITE
-            elif (clr == "bwhite"):   self.clr = Fore.WHITE + Style.BRIGHT
-            else:                     self.clr = Fore.RESET + Style.RESET_ALL
+            elif (clr == "cyan"):     self.clr = Fore.CYAN    + Style.NORMAL
+            elif (clr == "bcyan"):    self.clr = Fore.CYAN    + Style.BRIGHT
+            elif (clr == "white"):    self.clr = Fore.WHITE   + Style.NORMAL
+            elif (clr == "bwhite"):   self.clr = Fore.WHITE   + Style.BRIGHT
+            else:                     self.clr = ""
         except ImportError:
             return
 
     def __str__(self):
-        if useClr and self.clr: return self.clr
-        else:                   return ""
+        return self.clr
 
 # Default Colors
 ValueColor  = CLR("byellow")
 BorderColor = CLR("magenta")
-BitColor    = CLR("cyan")
-NormalColor = CLR("default")
+BitColor    = CLR("red")
+NormalColor = CLR("cyan")
 
 ULONG_MAX = 4294967295
-inputLoop = False
-Border, Value = range(2)
+useASCII  = False
+resetBit  = False
+startBit  = 0
 
-def PrintMsg(msg, clr=NormalColor):
-    sys.stdout.write(str(clr) + msg + str(NormalColor))
-    sys.stdout.flush()
+Top, Mid, Bot = range(3)
+topUChars = { 'Dash':'─', 'Left':'┌', 'Right':'┐', 'Mid':'┬', 'Vert':'│'}
+midUChars = { 'Dash':'─', 'Left':'├', 'Right':'┤', 'Mid':'┼', 'Vert':'│'}
+botUChars = { 'Dash':'─', 'Left':'└', 'Right':'┘', 'Mid':'┴', 'Vert':'│'}
+topAChars = { 'Dash':'-', 'Left':'-', 'Right':'-', 'Mid':'-', 'Vert':'|'}
+midAChars = { 'Dash':'-', 'Left':'|', 'Right':'|', 'Mid':'|', 'Vert':'|'}
+botAChars = { 'Dash':'-', 'Left':'-', 'Right':'-', 'Mid':'-', 'Vert':'|'}
+
+data      = ''
+topBorder = ''
+midBorder = ''
+botBorder = ''
 
 def Usage():
     sys.stdout.write('''
@@ -89,11 +96,13 @@ Usage: bitter [<args>] [<value> ...]
 
   -h          this text
   -n          no colors
-  -i          loop and prompt for new values
+  -a          ascii drawing
+  -b          reset start bit label for each argument
+  --sb=<bit>  start bit label (default 0)
   --vc=<clr>  value color (default byellow)
   --bc=<clr>  border color (default magenta)
-  --ic=<clr>  bit color (default cyan)
-  --nc=<clr>  normal color (terminal default)
+  --ic=<clr>  bit color (default red)
+  --nc=<clr>  normal color (cyan)
 
   <value>     dec:  decdigit+
               hex:  '0' ('x'|'X') hexdigit+
@@ -109,29 +118,89 @@ Usage: bitter [<args>] [<value> ...]
 ''')
     sys.exit(1)
 
-def BS(n, v):
-    return ((v & (1 << n)) != 0)
+def BChar(border, c):
+    if useASCII:
+        if   border == Top: return topAChars[c]
+        elif border == Mid: return midAChars[c]
+        elif border == Bot: return botAChars[c]
+        else:               return ' '
+    else:
+        if   border == Top: return topUChars[c]
+        elif border == Mid: return midUChars[c]
+        elif border == Bot: return botUChars[c]
+        else:               return ' '
 
-def RN(n):
-    return reversed(range(n))
+def P(msg, clr=NormalColor):
+    return "%s%s%s" % (str(clr), msg, str(NormalColor))
 
-def PCol(rowType, n, bit, fmt, val, sep, bitVal=0):
+def PColor(n, bit, val, bitVal=0):
+    vert = BChar(Mid, 'Vert')
+    out = ''
+
     if (bit == (n - 1)):
-        PrintMsg("%s" % sep, BorderColor)
-    if (rowType == Value):
-        if (bitVal == 1):
-            PrintMsg(fmt % val, BitColor)
-        else:
-            PrintMsg(fmt % val, NormalColor)
-    else: # (rowType == Border)
-        PrintMsg(fmt % val, BorderColor)
+        out += P(vert, BorderColor)
+
+    if (bitVal == 1):
+        out += P('%d' % val, BitColor)
+    else:
+        out += P('%d' % val, NormalColor)
+
     if ((bit % 8) == 0):
-        PrintMsg("%s" % sep, BorderColor)
+        out += P(vert, BorderColor)
         if not bit:
-            PrintMsg("\n")
+            out += '\n'
+
+    return out
+
+def BuildBorders(n):
+    global topBorder, midBorder, botBorder
+
+    def BuildBorder(border, n):
+        out = ''
+        dash  = BChar(border, 'Dash')
+        left  = BChar(border, 'Left')
+        right = BChar(border, 'Right')
+        mid   = BChar(border, 'Mid')
+        for c in range(n):
+            if c == 0:         out += P("%s%s"   % (left, dash),  BorderColor)
+            elif c == (n - 1): out += P("%s%s\n" % (dash, right), BorderColor)
+            elif (c % 8) == 0: out += P("%s%s"   % (mid, dash),   BorderColor)
+            else:              out += P(           dash,          BorderColor)
+        return out
+
+    topBorder = BuildBorder(Top, n)
+    midBorder = BuildBorder(Mid, n)
+    botBorder = BuildBorder(Bot, n)
+
+def PGroup(n, sb, v):
+    global topBorder, midBorder, botBorder
+    s0 = ''
+    s1 = ''
+    s2 = ''
+    s3 = ''
+    if (sb + n) >= 100:
+        for b in reversed(range(n)):
+            SB = b + sb
+            BSET = ((v & (1 << b)) != 0)
+            s0 += PColor(n, b, BSET,            BSET)
+            s1 += PColor(n, b, (SB / 100),      BSET)
+            s2 += PColor(n, b, (SB % 100) / 10, BSET)
+            s3 += PColor(n, b, (SB % 100) % 10, BSET)
+        out = "%s%s%s%s%s%s%s" % \
+                  (topBorder, s0, midBorder, s1, s2, s3, botBorder)
+    else:
+        for b in reversed(range(n)):
+            SB = b + sb
+            BSET = ((v & (1 << b)) != 0)
+            s0 += PColor(n, b, BSET,      BSET)
+            s1 += PColor(n, b, (SB / 10), BSET)
+            s2 += PColor(n, b, (SB % 10), BSET)
+        out = "%s%s%s%s%s%s" % \
+                  (topBorder, s0, midBorder, s1, s2, botBorder)
+    return out
 
 def BadBitArg(b):
-    PrintMsg("ERROR: Invalid bit value \"%s\"\n" % b)
+    sys.stdout.write(P("ERROR: Invalid bit value \"%s\"\n" % b))
     Usage()
 
 def StrToBit(b):
@@ -162,18 +231,9 @@ def GetBitArgsValue(arg):
                 BadBitArg(bitArg)
     return bitArgsValue
 
-def GetUserInput():
-    try:
-        sys.stdout.write("value: ")
-        sys.stdout.flush()
-        userIn = sys.stdin.readline()
-        return userIn.split()
-    except:
-        PrintMsg("\n")
-        sys.exit(1)
-
 try:
-    opts, args = getopt.getopt(sys.argv[1:], 'hni', ['vc=','bc=','ic=','nc='])
+    opts, args = getopt.getopt(sys.argv[1:], 'hnab',
+                               ['sb=', 'vc=','bc=','ic=','nc='])
 except:
     Usage()
 
@@ -181,9 +241,16 @@ for opt, arg in opts:
     if (opt == '-h'):
         Usage()
     elif (opt == '-n'):
-        useClr = False
-    elif (opt == '-i'):
-        inputLoop = True
+        ValueColor  = CLR("")
+        BorderColor = CLR("")
+        BitColor    = CLR("")
+        NormalColor = CLR("")
+    elif (opt == '-a'):
+        useASCII = True
+    elif (opt == '-b'):
+        resetBit = True
+    elif (opt == '--sb'):
+        startBit = int(arg, 0)
     elif (opt == '--vc'):
         ValueColor = CLR(arg)
     elif (opt == '--bc'):
@@ -193,37 +260,53 @@ for opt, arg in opts:
     elif (opt == '--nc'):
         NormalColor = CLR(arg)
 
-while True:
+sb = startBit
 
-    if (len(args) < 1):
-        args = GetUserInput()
+for i in args:
 
-    for i in args:
+    if resetBit:
+        sb = startBit
 
-        if i.find(",") != -1 or i.find("-") != -1:
-            v = GetBitArgsValue(i)
-        else:
-            v = int(i, 0)
-
-        if (v > ULONG_MAX):
-            n   = 64
-            fmt = "0x%016x"
-        else:
-            n   = 32
-            fmt = "0x%08x"
-
-        PrintMsg(("--> " + fmt + " <--\n") % v, ValueColor)
-
-        # PCol (rowType, n, bit, fmt, val, sep, bitVal)
-        for b in RN(n): PCol(Border, n, b, "%s", "-",      "-")
-        for b in RN(n): PCol(Value,  n, b, "%d", BS(b,v),  "|", BS(b,v))
-        for b in RN(n): PCol(Border, n, b, "%s", "-",      "|")
-        for b in RN(n): PCol(Value,  n, b, "%d", (b / 10), "|", BS(b,v))
-        for b in RN(n): PCol(Value,  n, b, "%d", (b % 10), "|", BS(b,v))
-        for b in RN(n): PCol(Border, n, b, "%s", "-",      "-")
-
-    if inputLoop:
-        args = GetUserInput()
+    if i.find(",") != -1 or i.find("-") != -1:
+        v = GetBitArgsValue(i)
     else:
-        break
+        v = int(i, 0)
+
+    if (v <= ULONG_MAX):
+
+        BuildBorders(32)
+
+        data += P("0x%08x\n" % v, ValueColor)
+        data += PGroup(32, sb, v)
+
+    else:
+
+        BuildBorders(64)
+
+        j = 0
+        tmp = v
+        while (tmp):
+            j += 1
+            tmp >>= 64
+        if not j:
+            j = 1
+
+        data += P(("0x%0" + str(j * 16) + "x\n") % v, ValueColor)
+
+        if j == 1:
+            data += PGroup(64, sb, v)
+            continue
+
+        for _ in range(j):
+
+            tmp = v & 0xffffffffffffffff
+            v >>= 64
+
+            data += P("    0x%016x\n" % tmp, ValueColor)
+            data += PGroup(64, sb, tmp)
+
+            sb += 64
+
+sys.stdout.write(data)
+sys.stdout.flush()
 
