@@ -24,10 +24,10 @@ Usage
       --ic=<clr>  bit color (default cyan)
       --nc=<clr>  normal color (terminal default)
 
-      <value>     dec:  decdigit+
-                  hex:  '0' ('x'|'X') hexdigit+
-                  oct:  '0' ('o'|'O') octdigit+ | '0' octdigit+
-                  bin:  '0' ('b'|'B') bindigit+
+      <value>     dec:  [0-9]+
+                  hex:  '0' ('x'|'X') [0-9a-f]+
+                  oct:  '0' ('o'|'O') [0-7]+
+                  bin:  '0' ('b'|'B') [0-1]+
                   bits: comma separated and/or ranges
                         2,6,13-17,30
 
