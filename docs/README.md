@@ -7,6 +7,7 @@ This simple tool is used to help determine which bits are set for a specified
 value. If you do a lot of driver level programming and are constantly dealing
 with register values this tool can be extremely helpful.
 
+
 Usage
 -----
 
@@ -15,7 +16,9 @@ Usage
 
       -h          this text
       -n          no colors
-      -i          loop and prompt for new values
+      -a          ascii drawing
+      -b          reset start bit label for each argument
+      --sb=<bit>  start bit label (default 0)
       --vc=<clr>  value color (default byellow)
       --bc=<clr>  border color (default magenta)
       --ic=<clr>  bit color (default cyan)
