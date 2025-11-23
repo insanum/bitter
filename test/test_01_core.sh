@@ -2,7 +2,7 @@
 #
 # test_01_core.sh - Core Feature Tests
 #
-# These tests verify the fundamental functionality of bitter:
+# These tests verify the fundamental functionality of bitz:
 # - Basic value display in different formats
 # - Hex, decimal, octal, and binary input parsing
 # - Bit range/spec input parsing
@@ -10,12 +10,12 @@
 # - Help output
 #
 # EXAMPLES:
-#   bitter 0xff                    # Display hex value
-#   bitter 255                     # Display decimal value
-#   bitter 0o377                   # Display octal value
-#   bitter 0b11111111              # Display binary value
-#   bitter 0,1,2,3                 # Display value from bit spec
-#   bitter 0-7                     # Display value from bit range
+#   bitz 0xff                    # Display hex value
+#   bitz 255                     # Display decimal value
+#   bitz 0o377                   # Display octal value
+#   bitz 0b11111111              # Display binary value
+#   bitz 0,1,2,3                 # Display value from bit spec
+#   bitz 0-7                     # Display value from bit range
 #
 
 section "Core Features - Basic Value Display"
@@ -25,8 +25,8 @@ section "Core Features - Basic Value Display"
 # The -h flag should display usage information and exit
 # -----------------------------------------------------------------------------
 run_test "Help flag (-h) shows usage" \
-    "$BITTER -h 2>&1 || true" \
-    "Usage: bitter"
+    "$BITZ -h 2>&1 || true" \
+    "Usage: bitz"
 
 # -----------------------------------------------------------------------------
 # TEST: Hexadecimal input
@@ -34,15 +34,15 @@ run_test "Help flag (-h) shows usage" \
 # Output shows the value in hex and binary bit visualization
 # -----------------------------------------------------------------------------
 run_test "Hex input (lowercase 0x)" \
-    "$BITTER -n 0xff" \
+    "$BITZ -n 0xff" \
     "0x000000ff"
 
 run_test "Hex input (uppercase 0X)" \
-    "$BITTER -n 0XFF" \
+    "$BITZ -n 0XFF" \
     "0x000000ff"
 
 run_test "Hex input (mixed case digits)" \
-    "$BITTER -n 0xDeAdBeEf" \
+    "$BITZ -n 0xDeAdBeEf" \
     "0xdeadbeef"
 
 # -----------------------------------------------------------------------------
@@ -50,15 +50,15 @@ run_test "Hex input (mixed case digits)" \
 # Plain integers are interpreted as decimal
 # -----------------------------------------------------------------------------
 run_test "Decimal input (small)" \
-    "$BITTER -n 255" \
+    "$BITZ -n 255" \
     "0x000000ff"
 
 run_test "Decimal input (large)" \
-    "$BITTER -n 3735928559" \
+    "$BITZ -n 3735928559" \
     "0xdeadbeef"
 
 run_test "Decimal input (zero)" \
-    "$BITTER -n 0" \
+    "$BITZ -n 0" \
     "0x00000000"
 
 # -----------------------------------------------------------------------------
@@ -66,15 +66,15 @@ run_test "Decimal input (zero)" \
 # Octal values are prefixed with 0o or 0O
 # -----------------------------------------------------------------------------
 run_test "Octal input (lowercase 0o)" \
-    "$BITTER -n 0o377" \
+    "$BITZ -n 0o377" \
     "0x000000ff"
 
 run_test "Octal input (uppercase 0O)" \
-    "$BITTER -n 0O377" \
+    "$BITZ -n 0O377" \
     "0x000000ff"
 
 run_test "Octal input (larger value)" \
-    "$BITTER -n 0o7777" \
+    "$BITZ -n 0o7777" \
     "0x00000fff"
 
 # -----------------------------------------------------------------------------
@@ -82,15 +82,15 @@ run_test "Octal input (larger value)" \
 # Binary values are prefixed with 0b or 0B
 # -----------------------------------------------------------------------------
 run_test "Binary input (lowercase 0b)" \
-    "$BITTER -n 0b11111111" \
+    "$BITZ -n 0b11111111" \
     "0x000000ff"
 
 run_test "Binary input (uppercase 0B)" \
-    "$BITTER -n 0B11111111" \
+    "$BITZ -n 0B11111111" \
     "0x000000ff"
 
 run_test "Binary input (sparse bits)" \
-    "$BITTER -n 0b10101010" \
+    "$BITZ -n 0b10101010" \
     "0x000000aa"
 
 # -----------------------------------------------------------------------------
@@ -101,19 +101,19 @@ run_test "Binary input (sparse bits)" \
 #       Use comma (0,) or range (0-0) to specify a single bit position.
 # -----------------------------------------------------------------------------
 run_test "Bit spec - single bit (with comma)" \
-    "$BITTER -n 0," \
+    "$BITZ -n 0," \
     "0x00000001"
 
 run_test "Bit spec - multiple bits" \
-    "$BITTER -n 0,1,2,3" \
+    "$BITZ -n 0,1,2,3" \
     "0x0000000f"
 
 run_test "Bit spec - scattered bits" \
-    "$BITTER -n 0,4,8,12" \
+    "$BITZ -n 0,4,8,12" \
     "0x00001111"
 
 run_test "Bit spec - high bit (with comma)" \
-    "$BITTER -n 31," \
+    "$BITZ -n 31," \
     "0x80000000"
 
 # -----------------------------------------------------------------------------
@@ -122,19 +122,19 @@ run_test "Bit spec - high bit (with comma)" \
 # Example: 0-7 sets bits 0 through 7 = 0xff
 # -----------------------------------------------------------------------------
 run_test "Bit range - byte" \
-    "$BITTER -n 0-7" \
+    "$BITZ -n 0-7" \
     "0x000000ff"
 
 run_test "Bit range - word" \
-    "$BITTER -n 0-15" \
+    "$BITZ -n 0-15" \
     "0x0000ffff"
 
 run_test "Bit range - upper byte" \
-    "$BITTER -n 24-31" \
+    "$BITZ -n 24-31" \
     "0xff000000"
 
 run_test "Bit range - middle bits" \
-    "$BITTER -n 8-15" \
+    "$BITZ -n 8-15" \
     "0x0000ff00"
 
 # -----------------------------------------------------------------------------
@@ -143,15 +143,15 @@ run_test "Bit range - middle bits" \
 # Example: 0,4-7,31 = bit 0 + bits 4-7 + bit 31
 # -----------------------------------------------------------------------------
 run_test "Mixed spec - bits and range" \
-    "$BITTER -n 0,4-7" \
+    "$BITZ -n 0,4-7" \
     "0x000000f1"
 
 run_test "Mixed spec - multiple ranges" \
-    "$BITTER -n 0-3,8-11" \
+    "$BITZ -n 0-3,8-11" \
     "0x00000f0f"
 
 run_test "Mixed spec - complex" \
-    "$BITTER -n 0,4-7,12,16-19" \
+    "$BITZ -n 0,4-7,12,16-19" \
     "0x000f10f1"
 
 
@@ -162,11 +162,11 @@ section "Core Features - Multi-Width Support"
 # Values <= 0xFFFFFFFF are displayed as 32-bit
 # -----------------------------------------------------------------------------
 run_test "32-bit value display" \
-    "$BITTER -n 0xffffffff" \
+    "$BITZ -n 0xffffffff" \
     "0xffffffff"
 
 run_test "32-bit max value" \
-    "$BITTER -n 4294967295" \
+    "$BITZ -n 4294967295" \
     "0xffffffff"
 
 # -----------------------------------------------------------------------------
@@ -175,11 +175,11 @@ run_test "32-bit max value" \
 # The display shows 16 hex digits
 # -----------------------------------------------------------------------------
 run_test "64-bit value display" \
-    "$BITTER -n 0x123456789abcdef0" \
+    "$BITZ -n 0x123456789abcdef0" \
     "0x123456789abcdef0"
 
 run_test "64-bit max value" \
-    "$BITTER -n 0xffffffffffffffff" \
+    "$BITZ -n 0xffffffffffffffff" \
     "0xffffffffffffffff"
 
 # -----------------------------------------------------------------------------
@@ -188,11 +188,11 @@ run_test "64-bit max value" \
 # The display shows 32 hex digits
 # -----------------------------------------------------------------------------
 run_test "128-bit value display" \
-    "$BITTER -n 0x123456789abcdef0123456789abcdef0" \
+    "$BITZ -n 0x123456789abcdef0123456789abcdef0" \
     "0x123456789abcdef0123456789abcdef0"
 
 run_test "128-bit with upper bits set" \
-    "$BITTER -n 0xffffffffffffffffffffffffffffffff" \
+    "$BITZ -n 0xffffffffffffffffffffffffffffffff" \
     "0xffffffffffffffffffffffffffffffff"
 
 
@@ -203,7 +203,7 @@ section "Core Features - Multiple Values"
 # Multiple values can be passed and each is displayed
 # -----------------------------------------------------------------------------
 run_test "Multiple values on command line" \
-    "$BITTER -n 0xff 0xaa 0x55 | grep -c '0x'" \
+    "$BITZ -n 0xff 0xaa 0x55 | grep -c '0x'" \
     "3"
 
 
@@ -215,11 +215,11 @@ section "Core Features - ASCII Mode"
 # Useful for terminals that don't support Unicode
 # -----------------------------------------------------------------------------
 run_test "ASCII mode uses dashes" \
-    "$BITTER -n -a 0xff" \
+    "$BITZ -n -a 0xff" \
     "--------"
 
 run_test "ASCII mode uses pipes" \
-    "$BITTER -n -a 0xff" \
+    "$BITZ -n -a 0xff" \
     "|"
 
 
@@ -231,11 +231,11 @@ section "Core Features - No Color Mode"
 # Useful for piping to files or non-color terminals
 # -----------------------------------------------------------------------------
 run_test "No color mode - output readable" \
-    "$BITTER -n 0xff" \
+    "$BITZ -n 0xff" \
     "0x000000ff"
 
 run_test "No color mode - contains box chars" \
-    "$BITTER -n 0xff" \
+    "$BITZ -n 0xff" \
     "┌"
 
 
@@ -247,15 +247,15 @@ section "Core Features - Start Bit Labeling"
 # Useful when displaying a field from a larger register
 # -----------------------------------------------------------------------------
 run_test "Start bit at 0 (default)" \
-    "$BITTER -n --sb=0 0xff" \
+    "$BITZ -n --sb=0 0xff" \
     "76543210"
 
 run_test "Start bit at 8" \
-    "$BITTER -n --sb=8 0xff" \
+    "$BITZ -n --sb=8 0xff" \
     "5432109" # Shows 15-8 range
 
 run_test "Start bit at 32" \
-    "$BITTER -n --sb=32 0xff" \
+    "$BITZ -n --sb=32 0xff" \
     "32" # Shows bits starting at 32
 
 # -----------------------------------------------------------------------------
@@ -263,5 +263,5 @@ run_test "Start bit at 32" \
 # Resets the bit counter for each value when displaying multiple values
 # -----------------------------------------------------------------------------
 run_test "Reset bit for each value" \
-    "$BITTER -n -b 0xff 0xaa | grep -c '76543210'" \
+    "$BITZ -n -b 0xff 0xaa | grep -c '76543210'" \
     "2"

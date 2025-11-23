@@ -1,5 +1,5 @@
 
-# bitter
+# bitz
 
 Which bits are set?
 
@@ -17,18 +17,26 @@ Which bits are set?
 
 ## Installation
 
+### From PyPI
+
 ```bash
-% git clone https://github.com/insanum/bitter.git
-% cd bitter
-% chmod +x bitter
+pip3 install bitz
+```
+
+### From Source
+
+```bash
+git clone https://github.com/insanum/bitz.git
+cd bitz
+chmod +x bitz.py
 # Optionally add to PATH or create alias
 ```
 
 ## Usage
 
 ```bash
-% bitter -h
-Usage: bitter [<args>] [<value> ...]
+% bitz -h
+Usage: bitz [<args>] [<value> ...]
 
   -h                this text
   -n                no colors
@@ -120,7 +128,7 @@ Usage: bitter [<args>] [<value> ...]
                               :format, :stats, :theme
 
   Standard input support:
-  Values can be piped via <stdin>: echo "0xff 0x1234" | bitter
+  Values can be piped via <stdin>: echo "0xff 0x1234" | bitz
 
   <value>           dec:  [0-9]+
                     hex:  '0' ('x'|'X') [0-9a-f]+
@@ -142,7 +150,7 @@ Usage: bitter [<args>] [<value> ...]
 Display a hex value:
 
 ```bash
-% bitter 0xdeadbeef
+% bitz 0xdeadbeef
 0xdeadbeef
 ┌────────┬────────┬────────┬────────┐
 │11011110│10101101│10111110│11101111│
@@ -155,7 +163,7 @@ Display a hex value:
 Display from bit specification (set bits 0, 4-7):
 
 ```bash
-% bitter 0,4-7
+% bitz 0,4-7
 0x000000f1
 ```
 
@@ -164,7 +172,7 @@ Display from bit specification (set bits 0, 4-7):
 Show which bits differ between two values:
 
 ```bash
-% bitter --diff 0xff00ff00 0x00ff00ff
+% bitz --diff 0xff00ff00 0x00ff00ff
 DIFF (changed bits highlighted):
 0xff00ff00
 ┌────────┬────────┬────────┬────────┐
@@ -191,7 +199,7 @@ XOR (bits that differ):
 Define and display named bit fields:
 
 ```bash
-% bitter --def="[31:16]=DEVICE_ID,[15:0]=VENDOR_ID" 0xdead1234
+% bitz --def="[31:16]=DEVICE_ID,[15:0]=VENDOR_ID" 0xdead1234
 0xdead1234
 ┌────────┬────────┬────────┬────────┐
 │11011110│10101101│00010010│00110100│
@@ -208,7 +216,7 @@ Fields:
 Extract a specific field:
 
 ```bash
-% bitter --field=23:16 0xdeadbeef
+% bitz --field=23:16 0xdeadbeef
 bits[23:16] = 0xad (173)
 ```
 
@@ -217,21 +225,21 @@ bits[23:16] = 0xad (173)
 Compact single-line output:
 
 ```bash
-% bitter --compact 0xdeadbeef
+% bitz --compact 0xdeadbeef
 0xdeadbeef = 11011110_10101101_10111110_11101111 (3735928559) [pop:24 hi:31 lo:0]
 ```
 
 Custom format for scripting:
 
 ```bash
-% bitter --format="%h,%d,%p" 0xdeadbeef
+% bitz --format="%h,%d,%p" 0xdeadbeef
 0xdeadbeef,3735928559,24
 ```
 
 Show bit statistics:
 
 ```bash
-% bitter --stats 0xdeadbeef
+% bitz --stats 0xdeadbeef
 0xdeadbeef
 ┌────────┬────────┬────────┬────────┐
 │11011110│10101101│10111110│11101111│
@@ -253,7 +261,7 @@ Statistics:
 Evaluate bitwise expressions:
 
 ```bash
-% bitter --expr="(0xff << 8) | 0x12"
+% bitz --expr="(0xff << 8) | 0x12"
 0x0000ff12
 ┌────────┬────────┬────────┬────────┐
 │00000000│00000000│11111111│00010010│
@@ -266,16 +274,16 @@ Evaluate bitwise expressions:
 Create a mask and apply it:
 
 ```bash
-% bitter --expr="0xdeadbeef & ~0xff"
+% bitz --expr="0xdeadbeef & ~0xff"
 0xdeadbe00
 ```
 
 ### Interactive REPL
 
 ```bash
-% bitter --repl
-bitter REPL - type :help for commands, :quit to exit
-bitter> 0xff
+% bitz --repl
+bitz REPL - type :help for commands, :quit to exit
+bitz> 0xff
 0x000000ff
 ┌────────┬────────┬────────┬────────┐
 │00000000│00000000│00000000│11111111│
@@ -283,15 +291,15 @@ bitter> 0xff
 │33222222│22221111│11111100│00000000│
 │10987654│32109876│54321098│76543210│
 └────────┴────────┴────────┴────────┘
-bitter> :def [7:0]=DATA,[15:8]=STATUS
+bitz> :def [7:0]=DATA,[15:8]=STATUS
 Defined 2 field(s).
-bitter> :compact on
+bitz> :compact on
 Compact mode: on
-bitter> 0x1234
+bitz> 0x1234
 0x00001234 = 00000000_00000000_00010010_00110100 (4660) [pop:5 hi:12 lo:2]
-bitter> :expr 0xff << 8
+bitz> :expr 0xff << 8
 0x0000ff00 = 00000000_00000000_11111111_00000000 (65280) [pop:8 hi:15 lo:8]
-bitter> :quit
+bitz> :quit
 Goodbye!
 ```
 
@@ -300,7 +308,7 @@ Goodbye!
 Read values from stdin:
 
 ```bash
-% echo "0xff 0xaa" | bitter --compact
+% echo "0xff 0xaa" | bitz --compact
 0x000000ff = 00000000_00000000_00000000_11111111 (255) [pop:8 hi:7 lo:0]
 0x000000aa = 00000000_00000000_00000000_10101010 (170) [pop:4 hi:7 lo:1]
 ```
@@ -308,7 +316,7 @@ Read values from stdin:
 Extract register value from log and display:
 
 ```bash
-% grep "REG=" debug.log | cut -d= -f2 | bitter --format="%h (pop=%p)"
+% grep "REG=" debug.log | cut -d= -f2 | bitz --format="%h (pop=%p)"
 ```
 
 ## Testing

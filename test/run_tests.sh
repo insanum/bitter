@@ -1,9 +1,9 @@
 #!/bin/bash
 
 #
-# bitter test suite runner
+# bitz test suite runner
 #
-# This script runs all bitter tests and reports results.
+# This script runs all bitz tests and reports results.
 # Each test file is a standalone script that can also be run individually.
 #
 # Usage:
@@ -20,7 +20,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-BITTER="$SCRIPT_DIR/../bitter"
+BITZ="$SCRIPT_DIR/../bitz.py"
 VERBOSE=0
 QUIET=0
 SPECIFIC_TEST=""
@@ -159,7 +159,7 @@ section() {
 }
 
 # Export for use in test scripts
-export BITTER
+export BITZ
 export -f run_test
 export -f run_test_exit_code
 export -f section
@@ -168,9 +168,8 @@ export QUIET
 export RED GREEN YELLOW CYAN NC
 
 # Run tests
-echo -e "${YELLOW}bitter test suite${NC}"
-echo "================="
-echo ""
+echo -e "${YELLOW}bitz test suite${NC}"
+echo "==============="
 
 if [[ -n "$SPECIFIC_TEST" ]]; then
     # Run specific test
@@ -193,7 +192,7 @@ fi
 
 # Print summary
 echo ""
-echo "================="
+echo "==============="
 echo -e "Tests run: ${CYAN}$TESTS_RUN${NC}"
 echo -e "Passed:    ${GREEN}$TESTS_PASSED${NC}"
 echo -e "Failed:    ${RED}$TESTS_FAILED${NC}"

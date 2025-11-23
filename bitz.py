@@ -29,7 +29,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 #
-# Home: https://github.com/insanum/bitter
+# Home: https://github.com/insanum/bitz
 # Author: Eric Davis <http://www.insanum.com>
 #
 # Dude... just buy me a beer. :-)
@@ -185,7 +185,7 @@ botBorder = ''
 
 def Usage():
     sys.stdout.write('''
-Usage: bitter [<args>] [<value> ...]
+Usage: bitz [<args>] [<value> ...]
 
   -h                this text
   -n                no colors
@@ -277,7 +277,7 @@ Usage: bitter [<args>] [<value> ...]
                               :format, :stats, :theme
 
   Standard input support:
-  Values can be piped via <stdin>: echo "0xff 0x1234" | bitter
+  Values can be piped via <stdin>: echo "0xff 0x1234" | bitz
 
   <value>           dec:  [0-9]+
                     hex:  '0' ('x'|'X') [0-9a-f]+
@@ -1229,12 +1229,12 @@ def RunRepl(initial_fields):
     state = ReplState(initial_fields)
 
     sys.stdout.write(
-        P("bitter REPL - type :help for commands, :quit to exit\n", ValClr)
+        P("bitz REPL - type :help for commands, :quit to exit\n", ValClr)
     )
 
     while True:
         try:
-            sys.stdout.write(P("bitter> ", BordClr))
+            sys.stdout.write(P("bitz> ", BordClr))
             sys.stdout.flush()
             line = sys.stdin.readline()
             if not line:  # EOF
@@ -1329,112 +1329,6 @@ def DisplayValue(v, sb=0, diffMask=None, label=None, fields=None):
             sb += 64
         return out, sb
 
-try:
-    opts, args = getopt.getopt(sys.argv[1:], 'hnabc',
-                               ['sb=', 'vc=','bc=','ic=','nc=',
-                                'not', 'or', 'and', 'xor', 'xnor', 'diff',
-                                'def=', 'regfile=',
-                                'mask', 'mask-inv', 'field=', 'bswap', 'bswap16',
-                                'signed', 'stats', 'dec', 'oct', 'bin',
-                                'shl=', 'shr=', 'rol=', 'ror=',
-                                'set=', 'clear=', 'width=', 'compact',
-                                'theme=', 'expr=', 'format=', 'repl'])
-except:
-    Usage()
-
-for opt, arg in opts:
-    if (opt == '-h'):
-        Usage()
-    elif (opt == '-n'):
-        ValClr  = CLR("")
-        BordClr = CLR("")
-        BitClr    = CLR("")
-        NormClr = CLR("")
-        DiffClr   = CLR("")
-        FieldColors = [CLR("") for _ in FieldColors]
-    elif (opt == '-a'):
-        useASCII = True
-    elif (opt == '-b'):
-        resetBit = True
-    elif (opt == '-c') or (opt == '--compact'):
-        compactMode = True
-    elif (opt == '--sb'):
-        startBit = int(arg, 0)
-    elif (opt == '--vc'):
-        ValClr = CLR(arg)
-    elif (opt == '--bc'):
-        BordClr = CLR(arg)
-    elif (opt == '--ic'):
-        BitClr = CLR(arg)
-    elif (opt == '--nc'):
-        NormClr = CLR(arg)
-    elif (opt == '--theme'):
-        if not ApplyTheme(arg):
-            sys.stdout.write(P("ERROR: Unknown theme '%s'. Available: dark, light\n" % arg,
-                               BitClr))
-            Usage()
-    elif (opt == '--not'):
-        bitwiseOp = 'not'
-    elif (opt == '--or'):
-        bitwiseOp = 'or'
-    elif (opt == '--and'):
-        bitwiseOp = 'and'
-    elif (opt == '--xor'):
-        bitwiseOp = 'xor'
-    elif (opt == '--xnor'):
-        bitwiseOp = 'xnor'
-    elif (opt == '--diff'):
-        bitwiseOp = 'diff'
-    elif (opt == '--def'):
-        fieldDefs.extend(ParseFieldDef(arg))
-    elif (opt == '--regfile'):
-        fieldDefs.extend(LoadRegFile(arg))
-    elif (opt == '--mask'):
-        maskMode = 'mask'
-    elif (opt == '--mask-inv'):
-        maskMode = 'mask-inv'
-    elif (opt == '--field'):
-        fieldExtract = ParseFieldSpec(arg)
-    elif (opt == '--bswap'):
-        bswapMode = 'bswap'
-    elif (opt == '--bswap16'):
-        bswapMode = 'bswap16'
-    elif (opt == '--signed'):
-        showSigned = True
-    elif (opt == '--stats'):
-        showStats = True
-    elif (opt == '--dec'):
-        showDec = True
-    elif (opt == '--oct'):
-        showOct = True
-    elif (opt == '--bin'):
-        showBin = True
-    elif (opt == '--shl'):
-        shiftLeft = int(arg, 0)
-    elif (opt == '--shr'):
-        shiftRight = int(arg, 0)
-    elif (opt == '--rol'):
-        rotateLeft = int(arg, 0)
-    elif (opt == '--ror'):
-        rotateRight = int(arg, 0)
-    elif (opt == '--set'):
-        setBits = arg
-    elif (opt == '--clear'):
-        clearBits = arg
-    elif (opt == '--width'):
-        forceWidth = int(arg, 0)
-        if forceWidth not in [8, 16, 32, 64, 128]:
-            sys.stdout.write(P("ERROR: --width must be 8, 16, 32, 64, or 128\n",
-                               BitClr))
-            Usage()
-    elif (opt == '--expr'):
-        exprMode = arg
-    elif (opt == '--format'):
-        formatStr = arg
-    elif (opt == '--repl'):
-        replMode = True
-
-
 def DisplayWithExtras(v, sb, width, fieldDefs, showDec, showOct, showBin,
                       showSigned, showStats):
     """Display a value with optional extras (fields, multi-base, stats).
@@ -1495,252 +1389,368 @@ def DisplayWithExtras(v, sb, width, fieldDefs, showDec, showOct, showBin,
     return out, sb + display_width
 
 
-# Check for field overlaps if fields were defined
-if fieldDefs:
-    CheckFieldOverlaps(fieldDefs)
+def main():
+    global ValClr, BordClr, BitClr, NormClr, DiffClr, FieldColors
+    global useASCII, resetBit, startBit, bitwiseOp, fieldDefs, maskMode
+    global fieldExtract, bswapMode, showSigned, showStats, showDec, showOct, showBin
+    global shiftLeft, shiftRight, rotateLeft, rotateRight, setBits, clearBits
+    global forceWidth, compactMode, exprMode, formatStr, replMode, data
 
-# Handle REPL mode
-if replMode:
-    RunRepl(fieldDefs)
-    sys.exit(0)
-
-# Read from stdin if no args and stdin is not a tty (but not if --expr is set)
-if not args and not exprMode and not sys.stdin.isatty():
-    stdin_data = sys.stdin.read().strip()
-    # Split on whitespace and/or newlines
-    for token in stdin_data.split():
-        if token:
-            args.append(token)
-
-sb = startBit
-
-# Handle expression evaluation mode
-if exprMode:
     try:
-        result = EvalExpr(exprMode)
-        # Treat result like a normal value and continue to display it
-        args = [str(result)]
-    except ValueError as e:
-        sys.stdout.write(P("ERROR: %s\n" % str(e), BitClr))
-        sys.exit(1)
-
-# Handle mask generation mode
-if maskMode:
-    if len(args) != 1:
-        sys.stdout.write(P("ERROR: --mask/--mask-inv requires exactly 1 bit specification\n", BitClr))
-        sys.stdout.write(P("       Example: --mask 4,7-11,31\n", NormClr))
+        opts, args = getopt.getopt(sys.argv[1:], 'hnabc',
+                                   ['sb=', 'vc=','bc=','ic=','nc=',
+                                    'not', 'or', 'and', 'xor', 'xnor', 'diff',
+                                    'def=', 'regfile=',
+                                    'mask', 'mask-inv', 'field=', 'bswap', 'bswap16',
+                                    'signed', 'stats', 'dec', 'oct', 'bin',
+                                    'shl=', 'shr=', 'rol=', 'ror=',
+                                    'set=', 'clear=', 'width=', 'compact',
+                                    'theme=', 'expr=', 'format=', 'repl'])
+    except:
         Usage()
 
-    mask = GenerateMask(args[0])
-    if maskMode == 'mask-inv':
-        width = GetBitWidth(mask)
-        full_mask = GetMaskForWidth(width)
-        mask = (~mask) & full_mask
+    for opt, arg in opts:
+        if (opt == '-h'):
+            Usage()
+        elif (opt == '-n'):
+            ValClr  = CLR("")
+            BordClr = CLR("")
+            BitClr    = CLR("")
+            NormClr = CLR("")
+            DiffClr   = CLR("")
+            FieldColors = [CLR("") for _ in FieldColors]
+        elif (opt == '-a'):
+            useASCII = True
+        elif (opt == '-b'):
+            resetBit = True
+        elif (opt == '-c') or (opt == '--compact'):
+            compactMode = True
+        elif (opt == '--sb'):
+            startBit = int(arg, 0)
+        elif (opt == '--vc'):
+            ValClr = CLR(arg)
+        elif (opt == '--bc'):
+            BordClr = CLR(arg)
+        elif (opt == '--ic'):
+            BitClr = CLR(arg)
+        elif (opt == '--nc'):
+            NormClr = CLR(arg)
+        elif (opt == '--theme'):
+            if not ApplyTheme(arg):
+                sys.stdout.write(P("ERROR: Unknown theme '%s'. Available: dark, light\n" % arg,
+                                   BitClr))
+                Usage()
+        elif (opt == '--not'):
+            bitwiseOp = 'not'
+        elif (opt == '--or'):
+            bitwiseOp = 'or'
+        elif (opt == '--and'):
+            bitwiseOp = 'and'
+        elif (opt == '--xor'):
+            bitwiseOp = 'xor'
+        elif (opt == '--xnor'):
+            bitwiseOp = 'xnor'
+        elif (opt == '--diff'):
+            bitwiseOp = 'diff'
+        elif (opt == '--def'):
+            fieldDefs.extend(ParseFieldDef(arg))
+        elif (opt == '--regfile'):
+            fieldDefs.extend(LoadRegFile(arg))
+        elif (opt == '--mask'):
+            maskMode = 'mask'
+        elif (opt == '--mask-inv'):
+            maskMode = 'mask-inv'
+        elif (opt == '--field'):
+            fieldExtract = ParseFieldSpec(arg)
+        elif (opt == '--bswap'):
+            bswapMode = 'bswap'
+        elif (opt == '--bswap16'):
+            bswapMode = 'bswap16'
+        elif (opt == '--signed'):
+            showSigned = True
+        elif (opt == '--stats'):
+            showStats = True
+        elif (opt == '--dec'):
+            showDec = True
+        elif (opt == '--oct'):
+            showOct = True
+        elif (opt == '--bin'):
+            showBin = True
+        elif (opt == '--shl'):
+            shiftLeft = int(arg, 0)
+        elif (opt == '--shr'):
+            shiftRight = int(arg, 0)
+        elif (opt == '--rol'):
+            rotateLeft = int(arg, 0)
+        elif (opt == '--ror'):
+            rotateRight = int(arg, 0)
+        elif (opt == '--set'):
+            setBits = arg
+        elif (opt == '--clear'):
+            clearBits = arg
+        elif (opt == '--width'):
+            forceWidth = int(arg, 0)
+            if forceWidth not in [8, 16, 32, 64, 128]:
+                sys.stdout.write(P("ERROR: --width must be 8, 16, 32, 64, or 128\n",
+                                   BitClr))
+                Usage()
+        elif (opt == '--expr'):
+            exprMode = arg
+        elif (opt == '--format'):
+            formatStr = arg
+        elif (opt == '--repl'):
+            replMode = True
 
-    # Output mask value in hex
-    sys.stdout.write(FormatHex(mask, GetBitWidth(mask)) + "\n")
-    sys.exit(0)
+    # Check for field overlaps if fields were defined
+    if fieldDefs:
+        CheckFieldOverlaps(fieldDefs)
 
-# Handle field extraction mode
-if fieldExtract:
-    if len(args) != 1:
-        sys.stdout.write(P("ERROR: --field requires exactly 1 value\n", BitClr))
-        sys.stdout.write(P("       Example: --field=23:16 0xDEADBEEF\n", NormClr))
-        Usage()
+    # Handle REPL mode
+    if replMode:
+        RunRepl(fieldDefs)
+        sys.exit(0)
 
-    msb, lsb = fieldExtract
-    v = ParseValue(args[0])
-    width = msb - lsb + 1
-    extracted = (v >> lsb) & ((1 << width) - 1)
+    # Read from stdin if no args and stdin is not a tty (but not if --expr is set)
+    if not args and not exprMode and not sys.stdin.isatty():
+        stdin_data = sys.stdin.read().strip()
+        # Split on whitespace and/or newlines
+        for token in stdin_data.split():
+            if token:
+                args.append(token)
 
-    if msb == lsb:
-        bit_str = "bit[%d]" % msb
-    else:
-        bit_str = "bits[%d:%d]" % (msb, lsb)
+    sb = startBit
 
-    # Output: bits[23:16] = 0xad (173)
-    if width == 1:
-        val_str = "SET" if extracted else "CLEAR"
-        sys.stdout.write("%s = %d (%s)\n" % (bit_str, extracted, val_str))
-    elif extracted <= 0xff:
-        sys.stdout.write("%s = 0x%02x (%d)\n" % (bit_str, extracted, extracted))
-    elif extracted <= 0xffff:
-        sys.stdout.write("%s = 0x%04x (%d)\n" % (bit_str, extracted, extracted))
-    elif extracted <= 0xffffffff:
-        sys.stdout.write("%s = 0x%08x (%d)\n" % (bit_str, extracted, extracted))
-    else:
-        sys.stdout.write("%s = 0x%x (%d)\n" % (bit_str, extracted, extracted))
-    sys.exit(0)
+    # Handle expression evaluation mode
+    if exprMode:
+        try:
+            result = EvalExpr(exprMode)
+            # Treat result like a normal value and continue to display it
+            args = [str(result)]
+        except ValueError as e:
+            sys.stdout.write(P("ERROR: %s\n" % str(e), BitClr))
+            sys.exit(1)
 
-# Handle byte swap mode
-if bswapMode:
-    if len(args) != 1:
-        sys.stdout.write(P("ERROR: --bswap/--bswap16 requires exactly 1 value\n",
-                           BitClr))
-        Usage()
-
-    v = ParseValue(args[0])
-    width = GetBitWidth(v)
-
-    if bswapMode == 'bswap':
-        result = ByteSwap(v, width)
-    else:  # bswap16
-        result = ByteSwap16(v, width)
-
-    # Output result in appropriate hex format
-    sys.stdout.write(FormatHex(result, width) + "\n")
-    sys.exit(0)
-
-# Handle bitwise operations
-if bitwiseOp:
-    # Parse values based on operation type
-    if bitwiseOp == 'not':
+    # Handle mask generation mode
+    if maskMode:
         if len(args) != 1:
-            sys.stdout.write(P("ERROR: --not requires exactly 1 value\n",
+            sys.stdout.write(P("ERROR: --mask/--mask-inv requires exactly 1 bit specification\n", BitClr))
+            sys.stdout.write(P("       Example: --mask 4,7-11,31\n", NormClr))
+            Usage()
+
+        mask = GenerateMask(args[0])
+        if maskMode == 'mask-inv':
+            width = GetBitWidth(mask)
+            full_mask = GetMaskForWidth(width)
+            mask = (~mask) & full_mask
+
+        # Output mask value in hex
+        sys.stdout.write(FormatHex(mask, GetBitWidth(mask)) + "\n")
+        sys.exit(0)
+
+    # Handle field extraction mode
+    if fieldExtract:
+        if len(args) != 1:
+            sys.stdout.write(P("ERROR: --field requires exactly 1 value\n", BitClr))
+            sys.stdout.write(P("       Example: --field=23:16 0xDEADBEEF\n", NormClr))
+            Usage()
+
+        msb, lsb = fieldExtract
+        v = ParseValue(args[0])
+        width = msb - lsb + 1
+        extracted = (v >> lsb) & ((1 << width) - 1)
+
+        if msb == lsb:
+            bit_str = "bit[%d]" % msb
+        else:
+            bit_str = "bits[%d:%d]" % (msb, lsb)
+
+        # Output: bits[23:16] = 0xad (173)
+        if width == 1:
+            val_str = "SET" if extracted else "CLEAR"
+            sys.stdout.write("%s = %d (%s)\n" % (bit_str, extracted, val_str))
+        elif extracted <= 0xff:
+            sys.stdout.write("%s = 0x%02x (%d)\n" % (bit_str, extracted, extracted))
+        elif extracted <= 0xffff:
+            sys.stdout.write("%s = 0x%04x (%d)\n" % (bit_str, extracted, extracted))
+        elif extracted <= 0xffffffff:
+            sys.stdout.write("%s = 0x%08x (%d)\n" % (bit_str, extracted, extracted))
+        else:
+            sys.stdout.write("%s = 0x%x (%d)\n" % (bit_str, extracted, extracted))
+        sys.exit(0)
+
+    # Handle byte swap mode
+    if bswapMode:
+        if len(args) != 1:
+            sys.stdout.write(P("ERROR: --bswap/--bswap16 requires exactly 1 value\n",
                                BitClr))
             Usage()
-        v1 = ParseValue(args[0])
-        width = GetBitWidth(v1)
-        mask = GetMaskForWidth(width)
-        result = (~v1) & mask
 
-        data += P("NOT:\n", ValClr)
-        out, sb = DisplayValue(v1, sb, fields=fieldDefs)
-        data += out
-        if fieldDefs:
-            data += DisplayFields(v1, fieldDefs)
-        data += P("=\n", ValClr)
-        out, sb = DisplayValue(result, startBit, fields=fieldDefs)
-        data += out
-        if fieldDefs:
-            data += DisplayFields(result, fieldDefs)
+        v = ParseValue(args[0])
+        width = GetBitWidth(v)
 
-    elif bitwiseOp in ['or', 'and', 'xor', 'xnor']:
-        if len(args) != 2:
-            sys.stdout.write(P("ERROR: --%s requires exactly 2 values\n" %
-                               bitwiseOp, BitClr))
-            Usage()
-        v1 = ParseValue(args[0])
-        v2 = ParseValue(args[1])
+        if bswapMode == 'bswap':
+            result = ByteSwap(v, width)
+        else:  # bswap16
+            result = ByteSwap16(v, width)
 
-        # Use the larger width of the two values
-        width = max(GetBitWidth(v1), GetBitWidth(v2))
-        mask = GetMaskForWidth(width)
+        # Output result in appropriate hex format
+        sys.stdout.write(FormatHex(result, width) + "\n")
+        sys.exit(0)
 
-        if bitwiseOp == 'or':
-            result = v1 | v2
-            op_str = "OR"
-        elif bitwiseOp == 'and':
-            result = v1 & v2
-            op_str = "AND"
-        elif bitwiseOp == 'xor':
-            result = v1 ^ v2
-            op_str = "XOR"
-        elif bitwiseOp == 'xnor':
-            result = (~(v1 ^ v2)) & mask
-            op_str = "XNOR"
-
-        data += P("%s:\n" % op_str, ValClr)
-        out, _ = DisplayValue(v1, startBit, fields=fieldDefs)
-        data += out
-        data += P("%s\n" % op_str, ValClr)
-        out, _ = DisplayValue(v2, startBit, fields=fieldDefs)
-        data += out
-        data += P("=\n", ValClr)
-        out, _ = DisplayValue(result, startBit, fields=fieldDefs)
-        data += out
-        if fieldDefs:
-            data += DisplayFields(result, fieldDefs)
-
-    elif bitwiseOp == 'diff':
-        if len(args) != 2:
-            sys.stdout.write(P("ERROR: --diff requires exactly 2 values\n",
-                               BitClr))
-            Usage()
-        v1 = ParseValue(args[0])
-        v2 = ParseValue(args[1])
-
-        # XOR gives us which bits differ
-        diffMask = v1 ^ v2
-
-        data += P("DIFF (changed bits highlighted):\n", ValClr)
-        out, _ = DisplayValue(v1, startBit, diffMask, fields=fieldDefs)
-        data += out
-        data += P("vs\n", ValClr)
-        out, _ = DisplayValue(v2, startBit, diffMask, fields=fieldDefs)
-        data += out
-
-        # Show field diff if fields defined
-        if fieldDefs:
-            data += DisplayFields(v1, fieldDefs, v2)
-
-        # Also show the XOR result
-        data += P("XOR (bits that differ):\n", ValClr)
-        out, _ = DisplayValue(diffMask, startBit, fields=fieldDefs)
-        data += out
-
-else:
-    # Normal mode - display each value
-    for i in args:
-
-        if resetBit:
-            sb = startBit
-
-        if i.find(",") != -1 or i.find("-") != -1:
-            v = GetBitArgsValue(i)
-        else:
-            v = int(i, 0)
-
-        # Determine width for transformations
-        if forceWidth:
-            width = forceWidth
-        else:
-            width = GetBitWidth(v)
-
-        # Apply transformations in order: set/clear, shift, rotate
-        if setBits:
-            setMask = GetBitArgsValue(setBits)
-            v = v | setMask
-
-        if clearBits:
-            clearMask = GetBitArgsValue(clearBits)
-            v = v & ~clearMask
-
-        if shiftLeft is not None:
+    # Handle bitwise operations
+    if bitwiseOp:
+        # Parse values based on operation type
+        if bitwiseOp == 'not':
+            if len(args) != 1:
+                sys.stdout.write(P("ERROR: --not requires exactly 1 value\n",
+                                   BitClr))
+                Usage()
+            v1 = ParseValue(args[0])
+            width = GetBitWidth(v1)
             mask = GetMaskForWidth(width)
-            v = (v << shiftLeft) & mask
+            result = (~v1) & mask
 
-        if shiftRight is not None:
-            v = v >> shiftRight
+            data += P("NOT:\n", ValClr)
+            out, sb = DisplayValue(v1, sb, fields=fieldDefs)
+            data += out
+            if fieldDefs:
+                data += DisplayFields(v1, fieldDefs)
+            data += P("=\n", ValClr)
+            out, sb = DisplayValue(result, startBit, fields=fieldDefs)
+            data += out
+            if fieldDefs:
+                data += DisplayFields(result, fieldDefs)
 
-        if rotateLeft is not None:
-            v = RotateLeft(v, rotateLeft, width)
+        elif bitwiseOp in ['or', 'and', 'xor', 'xnor']:
+            if len(args) != 2:
+                sys.stdout.write(P("ERROR: --%s requires exactly 2 values\n" %
+                                   bitwiseOp, BitClr))
+                Usage()
+            v1 = ParseValue(args[0])
+            v2 = ParseValue(args[1])
 
-        if rotateRight is not None:
-            v = RotateRight(v, rotateRight, width)
+            # Use the larger width of the two values
+            width = max(GetBitWidth(v1), GetBitWidth(v2))
+            mask = GetMaskForWidth(width)
 
-        # Mask to forced width if specified
-        if forceWidth:
-            v = v & GetMaskForWidth(forceWidth)
+            if bitwiseOp == 'or':
+                result = v1 | v2
+                op_str = "OR"
+            elif bitwiseOp == 'and':
+                result = v1 & v2
+                op_str = "AND"
+            elif bitwiseOp == 'xor':
+                result = v1 ^ v2
+                op_str = "XOR"
+            elif bitwiseOp == 'xnor':
+                result = (~(v1 ^ v2)) & mask
+                op_str = "XNOR"
 
-        # Compact mode - single line output
-        if compactMode:
-            data += DisplayCompact(v, width)
-            continue
+            data += P("%s:\n" % op_str, ValClr)
+            out, _ = DisplayValue(v1, startBit, fields=fieldDefs)
+            data += out
+            data += P("%s\n" % op_str, ValClr)
+            out, _ = DisplayValue(v2, startBit, fields=fieldDefs)
+            data += out
+            data += P("=\n", ValClr)
+            out, _ = DisplayValue(result, startBit, fields=fieldDefs)
+            data += out
+            if fieldDefs:
+                data += DisplayFields(result, fieldDefs)
 
-        # Format mode - custom output format
-        if formatStr:
-            data += FormatOutput(v, width, formatStr) + "\n"
-            continue
+        elif bitwiseOp == 'diff':
+            if len(args) != 2:
+                sys.stdout.write(P("ERROR: --diff requires exactly 2 values\n",
+                                   BitClr))
+                Usage()
+            v1 = ParseValue(args[0])
+            v2 = ParseValue(args[1])
 
-        # Display value with extras
-        out, sb = DisplayWithExtras(
-            v, sb, width, fieldDefs,
-            showDec, showOct, showBin, showSigned, showStats
-        )
-        data += out
+            # XOR gives us which bits differ
+            diffMask = v1 ^ v2
 
-sys.stdout.write(data + str(Clear))
-sys.stdout.flush()
-sys.exit(0)
+            data += P("DIFF (changed bits highlighted):\n", ValClr)
+            out, _ = DisplayValue(v1, startBit, diffMask, fields=fieldDefs)
+            data += out
+            data += P("vs\n", ValClr)
+            out, _ = DisplayValue(v2, startBit, diffMask, fields=fieldDefs)
+            data += out
+
+            # Show field diff if fields defined
+            if fieldDefs:
+                data += DisplayFields(v1, fieldDefs, v2)
+
+            # Also show the XOR result
+            data += P("XOR (bits that differ):\n", ValClr)
+            out, _ = DisplayValue(diffMask, startBit, fields=fieldDefs)
+            data += out
+
+    else:
+        # Normal mode - display each value
+        for i in args:
+
+            if resetBit:
+                sb = startBit
+
+            if i.find(",") != -1 or i.find("-") != -1:
+                v = GetBitArgsValue(i)
+            else:
+                v = int(i, 0)
+
+            # Determine width for transformations
+            if forceWidth:
+                width = forceWidth
+            else:
+                width = GetBitWidth(v)
+
+            # Apply transformations in order: set/clear, shift, rotate
+            if setBits:
+                setMask = GetBitArgsValue(setBits)
+                v = v | setMask
+
+            if clearBits:
+                clearMask = GetBitArgsValue(clearBits)
+                v = v & ~clearMask
+
+            if shiftLeft is not None:
+                mask = GetMaskForWidth(width)
+                v = (v << shiftLeft) & mask
+
+            if shiftRight is not None:
+                v = v >> shiftRight
+
+            if rotateLeft is not None:
+                v = RotateLeft(v, rotateLeft, width)
+
+            if rotateRight is not None:
+                v = RotateRight(v, rotateRight, width)
+
+            # Mask to forced width if specified
+            if forceWidth:
+                v = v & GetMaskForWidth(forceWidth)
+
+            # Compact mode - single line output
+            if compactMode:
+                data += DisplayCompact(v, width)
+                continue
+
+            # Format mode - custom output format
+            if formatStr:
+                data += FormatOutput(v, width, formatStr) + "\n"
+                continue
+
+            # Display value with extras
+            out, sb = DisplayWithExtras(
+                v, sb, width, fieldDefs,
+                showDec, showOct, showBin, showSigned, showStats
+            )
+            data += out
+
+    sys.stdout.write(data + str(Clear))
+    sys.stdout.flush()
+    sys.exit(0)
+
+
+if __name__ == '__main__':
+    main()
 

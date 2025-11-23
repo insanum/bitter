@@ -11,12 +11,12 @@
 # - DIFF: Visual comparison with changed bits highlighted
 #
 # EXAMPLES:
-#   bitter --not 0xff              # Invert bits: ~0xff = 0xffffff00
-#   bitter --or 0xf0 0x0f          # OR: 0xf0 | 0x0f = 0xff
-#   bitter --and 0xff 0x0f         # AND: 0xff & 0x0f = 0x0f
-#   bitter --xor 0xff 0xaa         # XOR: 0xff ^ 0xaa = 0x55
-#   bitter --xnor 0xff 0xaa        # XNOR: ~(0xff ^ 0xaa) = 0xffffffaa
-#   bitter --diff 0xff 0xaa        # Visual diff showing changed bits
+#   bitz --not 0xff              # Invert bits: ~0xff = 0xffffff00
+#   bitz --or 0xf0 0x0f          # OR: 0xf0 | 0x0f = 0xff
+#   bitz --and 0xff 0x0f         # AND: 0xff & 0x0f = 0x0f
+#   bitz --xor 0xff 0xaa         # XOR: 0xff ^ 0xaa = 0x55
+#   bitz --xnor 0xff 0xaa        # XNOR: ~(0xff ^ 0xaa) = 0xffffffaa
+#   bitz --diff 0xff 0xaa        # Visual diff showing changed bits
 #
 
 section "Bitwise Operations - NOT"
@@ -28,23 +28,23 @@ section "Bitwise Operations - NOT"
 # Example: NOT 0xff = 0xffffff00 (in 32-bit)
 # -----------------------------------------------------------------------------
 run_test "NOT - invert byte" \
-    "$BITTER -n --not 0xff" \
+    "$BITZ -n --not 0xff" \
     "0xffffff00"
 
 run_test "NOT - invert zero" \
-    "$BITTER -n --not 0x0" \
+    "$BITZ -n --not 0x0" \
     "0xffffffff"
 
 run_test "NOT - invert all ones" \
-    "$BITTER -n --not 0xffffffff" \
+    "$BITZ -n --not 0xffffffff" \
     "0x00000000"
 
 run_test "NOT - invert pattern" \
-    "$BITTER -n --not 0xaa" \
+    "$BITZ -n --not 0xaa" \
     "0xffffff55"
 
 run_test "NOT - shows NOT label" \
-    "$BITTER -n --not 0xff" \
+    "$BITZ -n --not 0xff" \
     "NOT:"
 
 # -----------------------------------------------------------------------------
@@ -52,7 +52,7 @@ run_test "NOT - shows NOT label" \
 # When input is 64-bit, mask is also 64-bit
 # -----------------------------------------------------------------------------
 run_test "NOT - 64-bit value" \
-    "$BITTER -n --not 0x0000000100000000" \
+    "$BITZ -n --not 0x0000000100000000" \
     "0xfffffffeffffffff"
 
 
@@ -65,30 +65,30 @@ section "Bitwise Operations - OR"
 # Example: 0xf0 | 0x0f = 0xff
 # -----------------------------------------------------------------------------
 run_test "OR - combine nibbles" \
-    "$BITTER -n --or 0xf0 0x0f" \
+    "$BITZ -n --or 0xf0 0x0f" \
     "0x000000ff"
 
 run_test "OR - same values" \
-    "$BITTER -n --or 0xff 0xff" \
+    "$BITZ -n --or 0xff 0xff" \
     "0x000000ff"
 
 run_test "OR - zero with value" \
-    "$BITTER -n --or 0x00 0xff" \
+    "$BITZ -n --or 0x00 0xff" \
     "0x000000ff"
 
 run_test "OR - overlapping bits" \
-    "$BITTER -n --or 0x0f 0x07" \
+    "$BITZ -n --or 0x0f 0x07" \
     "0x0000000f"
 
 run_test "OR - shows OR label" \
-    "$BITTER -n --or 0xf0 0x0f" \
+    "$BITZ -n --or 0xf0 0x0f" \
     "OR:"
 
 # -----------------------------------------------------------------------------
 # TEST: OR requires exactly 2 values
 # -----------------------------------------------------------------------------
 run_test_exit_code "OR - error with 1 value" \
-    "$BITTER --or 0xff" \
+    "$BITZ --or 0xff" \
     1
 
 
@@ -101,27 +101,27 @@ section "Bitwise Operations - AND"
 # Example: 0xff & 0x0f = 0x0f
 # -----------------------------------------------------------------------------
 run_test "AND - mask lower nibble" \
-    "$BITTER -n --and 0xff 0x0f" \
+    "$BITZ -n --and 0xff 0x0f" \
     "0x0000000f"
 
 run_test "AND - no overlap" \
-    "$BITTER -n --and 0xf0 0x0f" \
+    "$BITZ -n --and 0xf0 0x0f" \
     "0x00000000"
 
 run_test "AND - same values" \
-    "$BITTER -n --and 0xff 0xff" \
+    "$BITZ -n --and 0xff 0xff" \
     "0x000000ff"
 
 run_test "AND - with zero" \
-    "$BITTER -n --and 0xff 0x00" \
+    "$BITZ -n --and 0xff 0x00" \
     "0x00000000"
 
 run_test "AND - partial overlap" \
-    "$BITTER -n --and 0x0f 0x07" \
+    "$BITZ -n --and 0x0f 0x07" \
     "0x00000007"
 
 run_test "AND - shows AND label" \
-    "$BITTER -n --and 0xff 0x0f" \
+    "$BITZ -n --and 0xff 0x0f" \
     "AND:"
 
 
@@ -135,23 +135,23 @@ section "Bitwise Operations - XOR"
 # Useful for finding which bits changed between two register values
 # -----------------------------------------------------------------------------
 run_test "XOR - alternating pattern" \
-    "$BITTER -n --xor 0xff 0xaa" \
+    "$BITZ -n --xor 0xff 0xaa" \
     "0x00000055"
 
 run_test "XOR - same values (no diff)" \
-    "$BITTER -n --xor 0xff 0xff" \
+    "$BITZ -n --xor 0xff 0xff" \
     "0x00000000"
 
 run_test "XOR - completely different" \
-    "$BITTER -n --xor 0xffffffff 0x00000000" \
+    "$BITZ -n --xor 0xffffffff 0x00000000" \
     "0xffffffff"
 
 run_test "XOR - single bit change" \
-    "$BITTER -n --xor 0xff 0xfe" \
+    "$BITZ -n --xor 0xff 0xfe" \
     "0x00000001"
 
 run_test "XOR - shows XOR label" \
-    "$BITTER -n --xor 0xff 0xaa" \
+    "$BITZ -n --xor 0xff 0xaa" \
     "XOR:"
 
 
@@ -165,19 +165,19 @@ section "Bitwise Operations - XNOR"
 # Useful for finding which bits stayed the same
 # -----------------------------------------------------------------------------
 run_test "XNOR - alternating pattern" \
-    "$BITTER -n --xnor 0xff 0xaa" \
+    "$BITZ -n --xnor 0xff 0xaa" \
     "0xffffffaa"
 
 run_test "XNOR - same values (all match)" \
-    "$BITTER -n --xnor 0xff 0xff" \
+    "$BITZ -n --xnor 0xff 0xff" \
     "0xffffffff"
 
 run_test "XNOR - completely different" \
-    "$BITTER -n --xnor 0xffffffff 0x00000000" \
+    "$BITZ -n --xnor 0xffffffff 0x00000000" \
     "0x00000000"
 
 run_test "XNOR - shows XNOR label" \
-    "$BITTER -n --xnor 0xff 0xaa" \
+    "$BITZ -n --xnor 0xff 0xaa" \
     "XNOR:"
 
 
@@ -193,31 +193,31 @@ section "Bitwise Operations - DIFF"
 # Extremely useful for comparing register values before/after an operation
 # -----------------------------------------------------------------------------
 run_test "DIFF - shows both values" \
-    "$BITTER -n --diff 0xff 0xaa | grep -c '0x'" \
+    "$BITZ -n --diff 0xff 0xaa | grep -c '0x'" \
     "3"
 
 run_test "DIFF - shows 'DIFF' label" \
-    "$BITTER -n --diff 0xff 0xaa" \
+    "$BITZ -n --diff 0xff 0xaa" \
     "DIFF"
 
 run_test "DIFF - shows 'vs' separator" \
-    "$BITTER -n --diff 0xff 0xaa" \
+    "$BITZ -n --diff 0xff 0xaa" \
     "vs"
 
 run_test "DIFF - shows XOR result" \
-    "$BITTER -n --diff 0xff 0xaa" \
+    "$BITZ -n --diff 0xff 0xaa" \
     "XOR (bits that differ)"
 
 run_test "DIFF - displays first value" \
-    "$BITTER -n --diff 0xff 0xaa" \
+    "$BITZ -n --diff 0xff 0xaa" \
     "0x000000ff"
 
 run_test "DIFF - displays second value" \
-    "$BITTER -n --diff 0xff 0xaa" \
+    "$BITZ -n --diff 0xff 0xaa" \
     "0x000000aa"
 
 run_test "DIFF - displays XOR value" \
-    "$BITTER -n --diff 0xff 0xaa" \
+    "$BITZ -n --diff 0xff 0xaa" \
     "0x00000055"
 
 
@@ -229,9 +229,9 @@ section "Bitwise Operations - Mixed Width"
 # Example: 32-bit OR 64-bit -> 64-bit result
 # -----------------------------------------------------------------------------
 run_test "OR - 32-bit with 64-bit" \
-    "$BITTER -n --or 0xffffffff 0x100000000" \
+    "$BITZ -n --or 0xffffffff 0x100000000" \
     "0x00000001ffffffff"
 
 run_test "XOR - mixed widths" \
-    "$BITTER -n --xor 0xff 0x100000000000000ff" \
+    "$BITZ -n --xor 0xff 0x100000000000000ff" \
     "0x00000000000000010000000000000000"

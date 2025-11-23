@@ -21,10 +21,10 @@
 #   Prefix with 'b' for bright: bred, bgreen, byellow, etc.
 #
 # EXAMPLES:
-#   bitter --vc=green 0xff            # Green value display
-#   bitter --bc=cyan 0xff             # Cyan borders
-#   bitter --ic=bred 0xff             # Bright red for set bits
-#   bitter --theme=light 0xff         # Light terminal theme
+#   bitz --vc=green 0xff            # Green value display
+#   bitz --bc=cyan 0xff             # Cyan borders
+#   bitz --ic=bred 0xff             # Bright red for set bits
+#   bitz --theme=light 0xff         # Light terminal theme
 #
 
 section "Color Options - Value Color (--vc)"
@@ -35,15 +35,15 @@ section "Color Options - Value Color (--vc)"
 # We can't easily test actual color codes, but we verify the option is accepted
 # -----------------------------------------------------------------------------
 run_test "Value color - green accepted" \
-    "$BITTER --vc=green 0xff | head -1" \
+    "$BITZ --vc=green 0xff | head -1" \
     "0x"
 
 run_test "Value color - bred accepted" \
-    "$BITTER --vc=bred 0xff | head -1" \
+    "$BITZ --vc=bred 0xff | head -1" \
     "0x"
 
 run_test "Value color - byellow accepted" \
-    "$BITTER --vc=byellow 0xff | head -1" \
+    "$BITZ --vc=byellow 0xff | head -1" \
     "0x"
 
 
@@ -54,11 +54,11 @@ section "Color Options - Border Color (--bc)"
 # Changes the color of the box-drawing characters
 # -----------------------------------------------------------------------------
 run_test "Border color - cyan accepted" \
-    "$BITTER --bc=cyan 0xff" \
+    "$BITZ --bc=cyan 0xff" \
     "0x000000ff"
 
 run_test "Border color - magenta accepted" \
-    "$BITTER --bc=magenta 0xff" \
+    "$BITZ --bc=magenta 0xff" \
     "0x000000ff"
 
 
@@ -69,11 +69,11 @@ section "Color Options - Bit Color (--ic)"
 # Changes the color of bits that are 1
 # -----------------------------------------------------------------------------
 run_test "Bit color - red accepted" \
-    "$BITTER --ic=red 0xff" \
+    "$BITZ --ic=red 0xff" \
     "0x000000ff"
 
 run_test "Bit color - bgreen accepted" \
-    "$BITTER --ic=bgreen 0xff" \
+    "$BITZ --ic=bgreen 0xff" \
     "0x000000ff"
 
 
@@ -84,11 +84,11 @@ section "Color Options - Normal Color (--nc)"
 # Changes the color of bits that are 0 and other normal text
 # -----------------------------------------------------------------------------
 run_test "Normal color - blue accepted" \
-    "$BITTER --nc=blue 0xff" \
+    "$BITZ --nc=blue 0xff" \
     "0x000000ff"
 
 run_test "Normal color - white accepted" \
-    "$BITTER --nc=white 0xff" \
+    "$BITZ --nc=white 0xff" \
     "0x000000ff"
 
 
@@ -100,19 +100,19 @@ section "Color Options - No Color Mode (-n)"
 # Essential for piping output to files or non-color terminals
 # -----------------------------------------------------------------------------
 run_test "No color - output readable" \
-    "$BITTER -n 0xff" \
+    "$BITZ -n 0xff" \
     "0x000000ff"
 
 run_test "No color - output still correct" \
-    "$BITTER -n 0xff" \
+    "$BITZ -n 0xff" \
     "0x000000ff"
 
 run_test "No color - borders still drawn" \
-    "$BITTER -n 0xff" \
+    "$BITZ -n 0xff" \
     "┌"
 
 run_test "No color with ASCII - dashes drawn" \
-    "$BITTER -n -a 0xff" \
+    "$BITZ -n -a 0xff" \
     "----"
 
 
@@ -124,7 +124,7 @@ section "Color Options - Color Themes (--theme)"
 # Uses bright colors that stand out on dark backgrounds
 # -----------------------------------------------------------------------------
 run_test "Theme dark - accepted" \
-    "$BITTER --theme=dark 0xff" \
+    "$BITZ --theme=dark 0xff" \
     "0x000000ff"
 
 # -----------------------------------------------------------------------------
@@ -133,7 +133,7 @@ run_test "Theme dark - accepted" \
 # Uses darker colors that stand out on light backgrounds
 # -----------------------------------------------------------------------------
 run_test "Theme light - accepted" \
-    "$BITTER --theme=light 0xff" \
+    "$BITZ --theme=light 0xff" \
     "0x000000ff"
 
 # -----------------------------------------------------------------------------
@@ -141,11 +141,11 @@ run_test "Theme light - accepted" \
 # Should report error for unknown theme names
 # -----------------------------------------------------------------------------
 run_test_exit_code "Theme invalid - error" \
-    "$BITTER --theme=invalid 0xff" \
+    "$BITZ --theme=invalid 0xff" \
     1
 
 run_test "Theme invalid - error message" \
-    "$BITTER --theme=invalid 0xff 2>&1 || true" \
+    "$BITZ --theme=invalid 0xff 2>&1 || true" \
     "Unknown theme"
 
 
@@ -156,7 +156,7 @@ section "Color Options - Combined Options"
 # All color options can be combined
 # -----------------------------------------------------------------------------
 run_test "Combined colors - all custom" \
-    "$BITTER --vc=green --bc=blue --ic=red --nc=yellow 0xff" \
+    "$BITZ --vc=green --bc=blue --ic=red --nc=yellow 0xff" \
     "0x000000ff"
 
 # -----------------------------------------------------------------------------
@@ -164,7 +164,7 @@ run_test "Combined colors - all custom" \
 # Individual color options override theme colors
 # -----------------------------------------------------------------------------
 run_test "Theme with override" \
-    "$BITTER --theme=dark --vc=green 0xff" \
+    "$BITZ --theme=dark --vc=green 0xff" \
     "0x000000ff"
 
 # -----------------------------------------------------------------------------
@@ -173,7 +173,7 @@ run_test "Theme with override" \
 # (This tests that -n is processed correctly)
 # -----------------------------------------------------------------------------
 run_test "No color with color options" \
-    "$BITTER -n --vc=green 0xff" \
+    "$BITZ -n --vc=green 0xff" \
     "0x000000ff"
 
 
@@ -184,75 +184,75 @@ section "Color Options - All Color Names"
 # Verify all standard color names are accepted
 # -----------------------------------------------------------------------------
 run_test "Color - black" \
-    "$BITTER --vc=black 0xff | head -1" \
+    "$BITZ --vc=black 0xff | head -1" \
     "0x"
 
 run_test "Color - red" \
-    "$BITTER --vc=red 0xff | head -1" \
+    "$BITZ --vc=red 0xff | head -1" \
     "0x"
 
 run_test "Color - green" \
-    "$BITTER --vc=green 0xff | head -1" \
+    "$BITZ --vc=green 0xff | head -1" \
     "0x"
 
 run_test "Color - yellow" \
-    "$BITTER --vc=yellow 0xff | head -1" \
+    "$BITZ --vc=yellow 0xff | head -1" \
     "0x"
 
 run_test "Color - blue" \
-    "$BITTER --vc=blue 0xff | head -1" \
+    "$BITZ --vc=blue 0xff | head -1" \
     "0x"
 
 run_test "Color - magenta" \
-    "$BITTER --vc=magenta 0xff | head -1" \
+    "$BITZ --vc=magenta 0xff | head -1" \
     "0x"
 
 run_test "Color - cyan" \
-    "$BITTER --vc=cyan 0xff | head -1" \
+    "$BITZ --vc=cyan 0xff | head -1" \
     "0x"
 
 run_test "Color - white" \
-    "$BITTER --vc=white 0xff | head -1" \
+    "$BITZ --vc=white 0xff | head -1" \
     "0x"
 
 # -----------------------------------------------------------------------------
 # TEST: Bright colors (prefixed with 'b')
 # -----------------------------------------------------------------------------
 run_test "Color - bblack" \
-    "$BITTER --vc=bblack 0xff | head -1" \
+    "$BITZ --vc=bblack 0xff | head -1" \
     "0x"
 
 run_test "Color - bred" \
-    "$BITTER --vc=bred 0xff | head -1" \
+    "$BITZ --vc=bred 0xff | head -1" \
     "0x"
 
 run_test "Color - bgreen" \
-    "$BITTER --vc=bgreen 0xff | head -1" \
+    "$BITZ --vc=bgreen 0xff | head -1" \
     "0x"
 
 run_test "Color - byellow" \
-    "$BITTER --vc=byellow 0xff | head -1" \
+    "$BITZ --vc=byellow 0xff | head -1" \
     "0x"
 
 run_test "Color - bblue" \
-    "$BITTER --vc=bblue 0xff | head -1" \
+    "$BITZ --vc=bblue 0xff | head -1" \
     "0x"
 
 run_test "Color - bmagenta" \
-    "$BITTER --vc=bmagenta 0xff | head -1" \
+    "$BITZ --vc=bmagenta 0xff | head -1" \
     "0x"
 
 run_test "Color - bcyan" \
-    "$BITTER --vc=bcyan 0xff | head -1" \
+    "$BITZ --vc=bcyan 0xff | head -1" \
     "0x"
 
 run_test "Color - bwhite" \
-    "$BITTER --vc=bwhite 0xff | head -1" \
+    "$BITZ --vc=bwhite 0xff | head -1" \
     "0x"
 
 # -----------------------------------------------------------------------------
 # TEST: Default color (empty string - terminal default)
 # -----------------------------------------------------------------------------
 run_test "Color - default" \
-    "$BITTER --vc=default 0xff | head -1" \
+    "$BITZ --vc=default 0xff | head -1" \
     "0x"

@@ -15,12 +15,12 @@
 # set/clear -> shift -> rotate
 #
 # EXAMPLES:
-#   bitter --shl=8 0xff               # Shift left: 0xff00
-#   bitter --shr=4 0xff               # Shift right: 0x0f
-#   bitter --rol=4 0xf0000000         # Rotate left: 0x0000000f
-#   bitter --ror=4 0x0f               # Rotate right: 0xf0000000
-#   bitter --set=0,4-7 0x00           # Set bits: 0xf1
-#   bitter --clear=0-3 0xff           # Clear bits: 0xf0
+#   bitz --shl=8 0xff               # Shift left: 0xff00
+#   bitz --shr=4 0xff               # Shift right: 0x0f
+#   bitz --rol=4 0xf0000000         # Rotate left: 0x0000000f
+#   bitz --ror=4 0x0f               # Rotate right: 0xf0000000
+#   bitz --set=0,4-7 0x00           # Set bits: 0xf1
+#   bitz --clear=0-3 0xff           # Clear bits: 0xf0
 #
 
 section "Bit Manipulation - Shift Left (--shl)"
@@ -32,31 +32,31 @@ section "Bit Manipulation - Shift Left (--shl)"
 # Example: 0xff << 8 = 0xff00
 # -----------------------------------------------------------------------------
 run_test "Shift left - by 1" \
-    "$BITTER -n --shl=1 0x01" \
+    "$BITZ -n --shl=1 0x01" \
     "0x00000002"
 
 run_test "Shift left - by 4 (nibble)" \
-    "$BITTER -n --shl=4 0x0f" \
+    "$BITZ -n --shl=4 0x0f" \
     "0x000000f0"
 
 run_test "Shift left - by 8 (byte)" \
-    "$BITTER -n --shl=8 0xff" \
+    "$BITZ -n --shl=8 0xff" \
     "0x0000ff00"
 
 run_test "Shift left - by 16 (word)" \
-    "$BITTER -n --shl=16 0xffff" \
+    "$BITZ -n --shl=16 0xffff" \
     "0xffff0000"
 
 run_test "Shift left - overflow (bits lost)" \
-    "$BITTER -n --shl=8 0xff000000" \
+    "$BITZ -n --shl=8 0xff000000" \
     "0x00000000"
 
 run_test "Shift left - partial overflow" \
-    "$BITTER -n --shl=4 0xf0000000" \
+    "$BITZ -n --shl=4 0xf0000000" \
     "0x00000000"
 
 run_test "Shift left - by 0 (no change)" \
-    "$BITTER -n --shl=0 0xdeadbeef" \
+    "$BITZ -n --shl=0 0xdeadbeef" \
     "0xdeadbeef"
 
 
@@ -69,31 +69,31 @@ section "Bit Manipulation - Shift Right (--shr)"
 # Example: 0xff00 >> 8 = 0xff
 # -----------------------------------------------------------------------------
 run_test "Shift right - by 1" \
-    "$BITTER -n --shr=1 0x02" \
+    "$BITZ -n --shr=1 0x02" \
     "0x00000001"
 
 run_test "Shift right - by 4 (nibble)" \
-    "$BITTER -n --shr=4 0xf0" \
+    "$BITZ -n --shr=4 0xf0" \
     "0x0000000f"
 
 run_test "Shift right - by 8 (byte)" \
-    "$BITTER -n --shr=8 0xff00" \
+    "$BITZ -n --shr=8 0xff00" \
     "0x000000ff"
 
 run_test "Shift right - by 16 (word)" \
-    "$BITTER -n --shr=16 0xffff0000" \
+    "$BITZ -n --shr=16 0xffff0000" \
     "0x0000ffff"
 
 run_test "Shift right - underflow (bits lost)" \
-    "$BITTER -n --shr=8 0x000000ff" \
+    "$BITZ -n --shr=8 0x000000ff" \
     "0x00000000"
 
 run_test "Shift right - by 0 (no change)" \
-    "$BITTER -n --shr=0 0xdeadbeef" \
+    "$BITZ -n --shr=0 0xdeadbeef" \
     "0xdeadbeef"
 
 run_test "Shift right - extract upper byte" \
-    "$BITTER -n --shr=24 0xde000000" \
+    "$BITZ -n --shr=24 0xde000000" \
     "0x000000de"
 
 
@@ -106,27 +106,27 @@ section "Bit Manipulation - Rotate Left (--rol)"
 # Example (32-bit): 0xf0000000 ROL 4 = 0x0000000f
 # -----------------------------------------------------------------------------
 run_test "Rotate left - by 4" \
-    "$BITTER -n --rol=4 0xf0000000" \
+    "$BITZ -n --rol=4 0xf0000000" \
     "0x0000000f"
 
 run_test "Rotate left - by 8" \
-    "$BITTER -n --rol=8 0xff000000" \
+    "$BITZ -n --rol=8 0xff000000" \
     "0x000000ff"
 
 run_test "Rotate left - full rotation (32)" \
-    "$BITTER -n --rol=32 0xdeadbeef" \
+    "$BITZ -n --rol=32 0xdeadbeef" \
     "0xdeadbeef"
 
 run_test "Rotate left - by 1" \
-    "$BITTER -n --rol=1 0x80000000" \
+    "$BITZ -n --rol=1 0x80000000" \
     "0x00000001"
 
 run_test "Rotate left - pattern" \
-    "$BITTER -n --rol=4 0x12345678" \
+    "$BITZ -n --rol=4 0x12345678" \
     "0x23456781"
 
 run_test "Rotate left - by 0 (no change)" \
-    "$BITTER -n --rol=0 0xdeadbeef" \
+    "$BITZ -n --rol=0 0xdeadbeef" \
     "0xdeadbeef"
 
 
@@ -139,27 +139,27 @@ section "Bit Manipulation - Rotate Right (--ror)"
 # Example (32-bit): 0x0000000f ROR 4 = 0xf0000000
 # -----------------------------------------------------------------------------
 run_test "Rotate right - by 4" \
-    "$BITTER -n --ror=4 0x0000000f" \
+    "$BITZ -n --ror=4 0x0000000f" \
     "0xf0000000"
 
 run_test "Rotate right - by 8" \
-    "$BITTER -n --ror=8 0x000000ff" \
+    "$BITZ -n --ror=8 0x000000ff" \
     "0xff000000"
 
 run_test "Rotate right - full rotation (32)" \
-    "$BITTER -n --ror=32 0xdeadbeef" \
+    "$BITZ -n --ror=32 0xdeadbeef" \
     "0xdeadbeef"
 
 run_test "Rotate right - by 1" \
-    "$BITTER -n --ror=1 0x00000001" \
+    "$BITZ -n --ror=1 0x00000001" \
     "0x80000000"
 
 run_test "Rotate right - pattern" \
-    "$BITTER -n --ror=4 0x12345678" \
+    "$BITZ -n --ror=4 0x12345678" \
     "0x81234567"
 
 run_test "Rotate right - by 0 (no change)" \
-    "$BITTER -n --ror=0 0xdeadbeef" \
+    "$BITZ -n --ror=0 0xdeadbeef" \
     "0xdeadbeef"
 
 
@@ -172,31 +172,31 @@ section "Bit Manipulation - Set Bits (--set)"
 # Example: --set=0,4-7 with 0x00 = 0xf1
 # -----------------------------------------------------------------------------
 run_test "Set - single bit" \
-    "$BITTER -n --set=0 0x00" \
+    "$BITZ -n --set=0 0x00" \
     "0x00000001"
 
 run_test "Set - multiple bits" \
-    "$BITTER -n --set=0,1,2,3 0x00" \
+    "$BITZ -n --set=0,1,2,3 0x00" \
     "0x0000000f"
 
 run_test "Set - bit range" \
-    "$BITTER -n --set=0-7 0x00" \
+    "$BITZ -n --set=0-7 0x00" \
     "0x000000ff"
 
 run_test "Set - mixed spec" \
-    "$BITTER -n --set=0,4-7 0x00" \
+    "$BITZ -n --set=0,4-7 0x00" \
     "0x000000f1"
 
 run_test "Set - already set bits unchanged" \
-    "$BITTER -n --set=0-3 0x0f" \
+    "$BITZ -n --set=0-3 0x0f" \
     "0x0000000f"
 
 run_test "Set - add to existing value" \
-    "$BITTER -n --set=4-7 0x0f" \
+    "$BITZ -n --set=4-7 0x0f" \
     "0x000000ff"
 
 run_test "Set - high bits" \
-    "$BITTER -n --set=31 0x00" \
+    "$BITZ -n --set=31 0x00" \
     "0x80000000"
 
 
@@ -209,27 +209,27 @@ section "Bit Manipulation - Clear Bits (--clear)"
 # Example: --clear=0-3 with 0xff = 0xf0
 # -----------------------------------------------------------------------------
 run_test "Clear - single bit" \
-    "$BITTER -n --clear=0 0xff" \
+    "$BITZ -n --clear=0 0xff" \
     "0x000000fe"
 
 run_test "Clear - multiple bits" \
-    "$BITTER -n --clear=0,1,2,3 0xff" \
+    "$BITZ -n --clear=0,1,2,3 0xff" \
     "0x000000f0"
 
 run_test "Clear - bit range" \
-    "$BITTER -n --clear=0-7 0xffffffff" \
+    "$BITZ -n --clear=0-7 0xffffffff" \
     "0xffffff00"
 
 run_test "Clear - mixed spec" \
-    "$BITTER -n --clear=0,4-7 0xff" \
+    "$BITZ -n --clear=0,4-7 0xff" \
     "0x0000000e"
 
 run_test "Clear - already clear bits unchanged" \
-    "$BITTER -n --clear=0-3 0xf0" \
+    "$BITZ -n --clear=0-3 0xf0" \
     "0x000000f0"
 
 run_test "Clear - high bits" \
-    "$BITTER -n --clear=31 0xffffffff" \
+    "$BITZ -n --clear=31 0xffffffff" \
     "0x7fffffff"
 
 
@@ -241,19 +241,19 @@ section "Bit Manipulation - Combined Operations"
 # This allows complex bit manipulations in a single command
 # -----------------------------------------------------------------------------
 run_test "Combined - set then shift left" \
-    "$BITTER -n --set=0-7 --shl=8 0x00" \
+    "$BITZ -n --set=0-7 --shl=8 0x00" \
     "0x0000ff00"
 
 run_test "Combined - clear then shift right" \
-    "$BITTER -n --clear=0-7 --shr=8 0xffffff00" \
+    "$BITZ -n --clear=0-7 --shr=8 0xffffff00" \
     "0x00ffffff"
 
 run_test "Combined - shift then rotate" \
-    "$BITTER -n --shl=4 --rol=4 0x0f" \
+    "$BITZ -n --shl=4 --rol=4 0x0f" \
     "0x00000f00"
 
 run_test "Combined - set, clear, shift" \
-    "$BITTER -n --set=0-3 --clear=4-7 --shl=4 0xf0" \
+    "$BITZ -n --set=0-3 --clear=4-7 --shl=4 0xf0" \
     "0x000000f0"
 
 # -----------------------------------------------------------------------------
@@ -261,9 +261,9 @@ run_test "Combined - set, clear, shift" \
 # Width affects rotation boundary
 # -----------------------------------------------------------------------------
 run_test "Rotate with width=64" \
-    "$BITTER -n --width=64 --rol=32 0xffffffff" \
+    "$BITZ -n --width=64 --rol=32 0xffffffff" \
     "0xffffffff00000000"
 
 run_test "Shift with width=64" \
-    "$BITTER -n --width=64 --shl=32 0xffffffff" \
+    "$BITZ -n --width=64 --shl=32 0xffffffff" \
     "0xffffffff00000000"
