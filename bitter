@@ -1,8 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # The BSD License
 #
-# Copyright (c) 2011, Eric Davis
+# Copyright (c) 2011-2025, Eric Davis
 #
 # All rights reserved.
 #
@@ -30,57 +30,153 @@
 
 #
 # Home: https://github.com/insanum/bitter
+# Author: Eric Davis <http://www.insanum.com>
 #
-# Author: Eric Davis <edavis@insanum.com> <http://www.insanum.com>
+# Dude... just buy me a beer. :-)
 #
 
-import sys, getopt
+import sys, getopt, ast
+
+COLOR_CODES = {
+    "black":   "\033[0;30m", "bblack":   "\033[1;30m",
+    "red":     "\033[0;31m", "bred":     "\033[1;31m",
+    "green":   "\033[0;32m", "bgreen":   "\033[1;32m",
+    "yellow":  "\033[0;33m", "byellow":  "\033[1;33m",
+    "blue":    "\033[0;34m", "bblue":    "\033[1;34m",
+    "magenta": "\033[0;35m", "bmagenta": "\033[1;35m",
+    "cyan":    "\033[0;36m", "bcyan":    "\033[1;36m",
+    "white":   "\033[0;37m", "bwhite":   "\033[1;37m",
+    "clear":   "\033[0m",
+}
 
 class CLR:
-    clr = None
-
-    def __init__(self, clr):
-        if   (clr == "black"):    self.clr = "\033[0;30m"
-        elif (clr == "bblack"):   self.clr = "\033[1;30m"
-        elif (clr == "red"):      self.clr = "\033[0;31m"
-        elif (clr == "bred"):     self.clr = "\033[1;31m"
-        elif (clr == "green"):    self.clr = "\033[0;32m"
-        elif (clr == "bgreen"):   self.clr = "\033[1;32m"
-        elif (clr == "yellow"):   self.clr = "\033[0;33m"
-        elif (clr == "byellow"):  self.clr = "\033[1;33m"
-        elif (clr == "blue"):     self.clr = "\033[0;34m"
-        elif (clr == "bblue"):    self.clr = "\033[1;34m"
-        elif (clr == "magenta"):  self.clr = "\033[0;35m"
-        elif (clr == "bmagenta"): self.clr = "\033[1;35m"
-        elif (clr == "cyan"):     self.clr = "\033[0;36m"
-        elif (clr == "bcyan"):    self.clr = "\033[1;36m"
-        elif (clr == "white"):    self.clr = "\033[0;37m"
-        elif (clr == "bwhite"):   self.clr = "\033[1;37m"
-        elif (clr == "clear"):    self.clr = "\033[0m"
-        else:                     self.clr = ""
+    def __init__(self, name):
+        self.clr = COLOR_CODES.get(name, "")
 
     def __str__(self):
         return self.clr
 
-# Default Colors
-ValueColor  = CLR("byellow")
-BorderColor = CLR("magenta")
-BitColor    = CLR("red")
-NormalColor = CLR("cyan")
-Clear       = CLR("clear")
+# Default Colors (dark theme - for dark terminal backgrounds)
+ValClr  = CLR("byellow")
+BordClr = CLR("magenta")
+BitClr  = CLR("red")
+NormClr = CLR("cyan")
+DiffClr = CLR("bgreen")  # Color for changed bits in diff mode
+Clear   = CLR("clear")
 
-ULONG_MAX = 4294967295
-useASCII  = False
-resetBit  = False
-startBit  = 0
+# Field colors - cycle through these for different fields
+FieldColors = [
+    CLR("bred"),
+    CLR("bgreen"),
+    CLR("byellow"),
+    CLR("bblue"),
+    CLR("bmagenta"),
+    CLR("bcyan"),
+    CLR("bwhite"),
+]
+
+# Theme definitions
+Themes = {
+    'dark': {
+        'value': 'byellow',
+        'border': 'magenta',
+        'bit': 'red',
+        'normal': 'cyan',
+        'diff': 'bgreen',
+        'fields': [ 'bred', 'bgreen', 'byellow', 'bblue', 'bmagenta', 'bcyan',
+                    'bwhite' ],
+    },
+    'light': {
+        'value': 'blue',
+        'border': 'magenta',
+        'bit': 'red',
+        'normal': 'black',
+        'diff': 'green',
+        'fields': [ 'bred', 'bgreen', 'bblue', 'bmagenta', 'bcyan', 'bblack',
+                    'byellow' ],
+    },
+}
+
+def ApplyTheme(theme_name):
+    """Apply a color theme."""
+    global ValClr, BordClr, BitClr, NormClr, DiffClr, FieldColors
+    if theme_name not in Themes:
+        return False
+    theme = Themes[theme_name]
+    ValClr = CLR(theme['value'])
+    BordClr = CLR(theme['border'])
+    BitClr = CLR(theme['bit'])
+    NormClr = CLR(theme['normal'])
+    DiffClr = CLR(theme['diff'])
+    FieldColors = [CLR(c) for c in theme['fields']]
+    return True
+
+# Safe expression evaluation using AST
+ALLOWED_AST_NODES = (
+    ast.Expression, ast.BinOp, ast.UnaryOp, ast.Constant,
+    ast.BitOr, ast.BitAnd, ast.BitXor, ast.Invert, ast.LShift, ast.RShift,
+    ast.Add, ast.Sub, ast.Mult, ast.FloorDiv, ast.Mod,
+    ast.USub, ast.UAdd,
+)
+
+def ValidateASTNode(node):
+    """Recursively validate that AST only contains safe nodes."""
+    if not isinstance(node, ALLOWED_AST_NODES):
+        raise ValueError("Unsupported operation: %s" % type(node).__name__)
+    for child in ast.iter_child_nodes(node):
+        ValidateASTNode(child)
+
+def EvalExpr(expr):
+    """Safely evaluate a bitwise expression."""
+    try:
+        tree = ast.parse(expr, mode='eval')
+        ValidateASTNode(tree)
+        result = eval(compile(tree, '<expr>', 'eval'), {"__builtins__": {}}, {})
+        if not isinstance(result, int):
+            raise ValueError("Expression must evaluate to an integer")
+        return result
+    except SyntaxError as e:
+        raise ValueError("Syntax error: %s" % str(e))
+
+ULONG_MAX    = 4294967295
+ULLONG_MAX   = 18446744073709551615
+U128_MAX     = 340282366920938463463374607431768211455
+useASCII     = False
+resetBit     = False
+startBit     = 0
+bitwiseOp    = None  # None, 'not', 'or', 'and', 'xor', 'xnor', 'diff'
+fieldDefs    = []    # List of field definitions
+maskMode     = None  # None, 'mask', 'mask-inv'
+fieldExtract = None  # None or (msb, lsb) tuple for --field
+bswapMode    = None  # None, 'bswap', 'bswap16'
+showSigned   = False  # Show signed interpretation
+showStats    = False  # Show bit statistics
+showDec      = False  # Show decimal output
+showOct      = False  # Show octal output
+showBin      = False  # Show binary output
+shiftLeft    = None   # Shift left amount
+shiftRight   = None   # Shift right amount
+rotateLeft   = None   # Rotate left amount
+rotateRight  = None  # Rotate right amount
+setBits      = None   # Bits to set
+clearBits    = None   # Bits to clear
+forceWidth   = None   # Force display width (8, 16, 32, 64, 128)
+compactMode  = False # Single-line compact output
+exprMode     = None   # Expression to evaluate
+formatStr    = None   # Custom output format string
+replMode     = False  # Interactive REPL mode
 
 Top, Mid, Bot = range(3)
-topUChars = { 'Dash':'─', 'Left':'┌', 'Right':'┐', 'Mid':'┬', 'Vert':'│'}
-midUChars = { 'Dash':'─', 'Left':'├', 'Right':'┤', 'Mid':'┼', 'Vert':'│'}
-botUChars = { 'Dash':'─', 'Left':'└', 'Right':'┘', 'Mid':'┴', 'Vert':'│'}
-topAChars = { 'Dash':'-', 'Left':'-', 'Right':'-', 'Mid':'-', 'Vert':'|'}
-midAChars = { 'Dash':'-', 'Left':'|', 'Right':'|', 'Mid':'|', 'Vert':'|'}
-botAChars = { 'Dash':'-', 'Left':'-', 'Right':'-', 'Mid':'-', 'Vert':'|'}
+BORDER_CHARS = {
+    # Unicode borders
+    (False, Top): {'Dash': '─', 'Left': '┌', 'Right': '┐', 'Mid': '┬', 'Vert': '│'},
+    (False, Mid): {'Dash': '─', 'Left': '├', 'Right': '┤', 'Mid': '┼', 'Vert': '│'},
+    (False, Bot): {'Dash': '─', 'Left': '└', 'Right': '┘', 'Mid': '┴', 'Vert': '│'},
+    # ASCII borders
+    (True, Top): {'Dash': '-', 'Left': '-', 'Right': '-', 'Mid': '-', 'Vert': '|'},
+    (True, Mid): {'Dash': '-', 'Left': '|', 'Right': '|', 'Mid': '|', 'Vert': '|'},
+    (True, Bot): {'Dash': '-', 'Left': '-', 'Right': '-', 'Mid': '-', 'Vert': '|'},
+}
 
 data      = ''
 topBorder = ''
@@ -91,63 +187,302 @@ def Usage():
     sys.stdout.write('''
 Usage: bitter [<args>] [<value> ...]
 
-  -h          this text
-  -n          no colors
-  -a          ascii drawing
-  -b          reset start bit label for each argument
-  --sb=<bit>  start bit label (default 0)
-  --vc=<clr>  value color (default byellow)
-  --bc=<clr>  border color (default magenta)
-  --ic=<clr>  bit color (default red)
-  --nc=<clr>  normal color (cyan)
+  -h                this text
+  -n                no colors
+  -a                ascii drawing
+  -b                reset start bit label for each argument
+  -c                compact single-line output (same as --compact)
+  --sb=<bit>        start bit label (default 0)
+  --vc=<clr>        value color (default byellow)
+  --bc=<clr>        border color (default magenta)
+  --ic=<clr>        bit color (default red)
+  --nc=<clr>        normal color (cyan)
+  --theme=<t>       color theme: dark (default), light
 
-  <value>     dec:  [0-9]+
-              hex:  '0' ('x'|'X') [0-9a-f]+
-              oct:  '0' ('o'|'O') [0-7]+
-              bin:  '0' ('b'|'B') [0-1]+
-              bits: comma separated and/or ranges
-                    2,6,13-17,30
+  Bitwise operations:
+  --not             invert bits: NOT <val>
+  --or              bitwise OR:  <val1> OR <val2>
+  --and             bitwise AND: <val1> AND <val2>
+  --xor             bitwise XOR: <val1> XOR <val2> (bits that differ)
+  --xnor            bitwise XNOR: <val1> XNOR <val2> (bits that match)
+  --diff            show both values with changed bits highlighted
 
-  <clr>       default, black, red, green, yellow
-              blue, magenta, cyan, white
-              NOTE: prefix a 'b' for bright (i.e. byellow)
+  Field definitions:
+  --def=<fields>    define bit fields inline
+                    format: [MSB:LSB]=NAME or [BIT]=NAME
+                    example: --def="[31:24]=STATUS,[7:0]=DATA"
+  --regfile=<file>  load field definitions from file
+                    file format: one field per line, # for comments
+
+  Utility operations:
+  --mask            generate mask from bit spec (output hex only)
+                    example: --mask 4,7-11,31 -> 0x80000f90
+  --mask-inv        generate inverted mask from bit spec
+                    example: --mask-inv 4,7-11,31 -> 0x7ffff06f
+  --field=<spec>    extract field value from input
+                    spec: MSB:LSB or BIT
+                    example: --field=23:16 0xDEADBEEF -> 0xad (173)
+  --bswap           swap byte order (endian swap)
+                    example: --bswap 0x12345678 -> 0x78563412
+  --bswap16         swap bytes within 16-bit words
+                    example: --bswap16 0x12345678 -> 0x34127856
+
+  Display options:
+  --signed          show signed integer interpretation
+  --stats           show bit statistics (popcount, leading/trailing zeros)
+  --dec             show decimal value
+  --oct             show octal value
+  --bin             show binary value
+  --width=<N>       force display width (8, 16, 32, 64, 128)
+  --compact         compact single-line output with binary and stats, example:
+                    0xdeadbeef = 11011110_... (3735928559) [pop:24 hi:31 lo:0]
+  --format=<fmt>    custom output format string
+                    field specifiers: %h hex
+                                      %H hex (no 0x)
+                                      %d decimal
+                                      %s signed,
+                                      %o octal
+                                      %O octal (no 0o)
+                                      %b binary
+                                      %B binary (no 0b)
+                                      %p popcount
+                                      %hi highest bit
+                                      %lo lowest bit
+                                      %lz leading zeros
+                                      %tz trailing zeros
+                                      %w width
+                                      %% literal %
+                    example: --format="%h (%d)" -> 0xdeadbeef (3735928559)
+                    example: --format="%h,%d,%p" -> 0xdeadbeef,3735928559,24
+
+  Bit manipulation:
+  --shl=<N>         shift left by N bits
+  --shr=<N>         shift right by N bits
+  --rol=<N>         rotate left by N bits
+  --ror=<N>         rotate right by N bits
+  --set=<bits>      set specified bits (e.g., --set=0,4-7)
+  --clear=<bits>    clear specified bits (e.g., --clear=31)
+
+  Expression evaluation:
+  --expr=<expr>     evaluate bitwise expression and display result
+                    supported: | & ^ ~ << >> + - * // % ()
+                    integers: decimal, 0x hex, 0o octal, 0b binary
+                    example: --expr="(0xff << 8) | 0x12"
+                    example: --expr="0xdeadbeef & ~0xff"
+
+  Interactive mode:
+  --repl            start interactive REPL mode
+                    commands: :help, :quit, :expr, :or, :and, :xor, :not,
+                              :diff, :def, :load, :fields, :clear, :compact,
+                              :format, :stats, :theme
+
+  Standard input support:
+  Values can be piped via <stdin>: echo "0xff 0x1234" | bitter
+
+  <value>           dec:  [0-9]+
+                    hex:  '0' ('x'|'X') [0-9a-f]+
+                    oct:  '0' ('o'|'O') [0-7]+
+                    bin:  '0' ('b'|'B') [0-1]+
+                    bits: comma separated and/or ranges
+                          2,6,13-17,30
+
+  <clr>             default, black, red, green, yellow
+                    blue, magenta, cyan, white
+                    (prefix a 'b' for bright e.g., byellow)
 
 ''')
     sys.exit(1)
 
-def BChar(border, c):
-    if useASCII:
-        if   border == Top: return topAChars[c]
-        elif border == Mid: return midAChars[c]
-        elif border == Bot: return botAChars[c]
-        else:               return ' '
+class Field:
+    """Represents a named bit field."""
+    def __init__(self, name, msb, lsb, color_idx=0):
+        self.name = name
+        self.msb = msb
+        self.lsb = lsb
+        self.color_idx = color_idx
+
+    def width(self):
+        return self.msb - self.lsb + 1
+
+    def mask(self):
+        return ((1 << self.width()) - 1) << self.lsb
+
+    def extract(self, value):
+        return (value >> self.lsb) & ((1 << self.width()) - 1)
+
+    def contains_bit(self, bit):
+        return self.lsb <= bit <= self.msb
+
+    def __repr__(self):
+        if self.msb == self.lsb:
+            return "[%d]=%s" % (self.msb, self.name)
+        return "[%d:%d]=%s" % (self.msb, self.lsb, self.name)
+
+def ParseSingleField(line, color_idx, strict=True):
+    """Parse a single field definition '[MSB:LSB]=NAME' or '[BIT]=NAME'.
+
+    Args:
+        line: The field definition string
+        color_idx: Color index to assign to the field
+        strict: If True, exit on errors; if False, return None on errors
+
+    Returns:
+        Field object or None if parsing failed (when strict=False)
+    """
+    line = line.strip()
+    if not line:
+        return None
+
+    # Handle inline comments
+    if '#' in line:
+        comment_pos = line.find('#')
+        # Only strip if # is not inside the brackets
+        bracket_end = line.find(']')
+        if bracket_end != -1 and comment_pos > bracket_end:
+            line = line[:comment_pos].strip()
+
+    if not line.startswith('[') or '=' not in line:
+        if strict:
+            sys.stdout.write(
+                P("ERROR: Invalid field definition '%s'\n" % line, BitClr)
+            )
+            sys.stdout.write(
+                P("       Expected format: [MSB:LSB]=NAME or [BIT]=NAME\n",
+                  NormClr)
+            )
+            sys.exit(1)
+        return None
+
+    bracket_end = line.find(']')
+    if bracket_end == -1:
+        if strict:
+            sys.stdout.write(
+                P("ERROR: Missing ']' in field definition '%s'\n" % line,
+                  BitClr)
+            )
+            sys.exit(1)
+        return None
+
+    bit_spec = line[1:bracket_end]
+    name = line[bracket_end+2:].strip()  # Skip ]=
+
+    if ':' in bit_spec:
+        msb, lsb = bit_spec.split(':')
+        msb = int(msb)
+        lsb = int(lsb)
     else:
-        if   border == Top: return topUChars[c]
-        elif border == Mid: return midUChars[c]
-        elif border == Bot: return botUChars[c]
-        else:               return ' '
+        msb = lsb = int(bit_spec)
 
-def P(msg, clr=NormalColor):
-    return "%s%s%s" % (str(clr), msg, str(NormalColor))
+    if msb < lsb:
+        msb, lsb = lsb, msb  # Swap if reversed
 
-def PColor(n, bit, val, bitVal=0):
-    vert = BChar(Mid, 'Vert')
-    out = ''
+    return Field(name, msb, lsb, color_idx)
 
-    if (bit == (n - 1)):
-        out += P(vert, BorderColor)
 
-    if (bitVal == 1):
-        out += P('%d' % val, BitColor)
-    else:
-        out += P('%d' % val, NormalColor)
+def ParseFieldDef(def_str):
+    """Parse field definition string like '[31:24]=STATUS,[7:0]=DATA'"""
+    fields = []
+    color_idx = 0
 
-    if ((bit % 8) == 0):
-        out += P(vert, BorderColor)
-        if not bit:
-            out += '\n'
+    for part in def_str.split(','):
+        field = ParseSingleField(part, color_idx, strict=True)
+        if field:
+            fields.append(field)
+            color_idx = (color_idx + 1) % len(FieldColors)
+
+    return fields
+
+
+def LoadRegFile(filename):
+    """Load field definitions from a register definition file."""
+    fields = []
+    color_idx = 0
+
+    try:
+        with open(filename, 'r') as f:
+            for line in f:
+                line = line.strip()
+                # Skip empty lines and comments
+                if not line or line.startswith('#'):
+                    continue
+
+                field = ParseSingleField(line, color_idx, strict=False)
+                if field:
+                    fields.append(field)
+                    color_idx = (color_idx + 1) % len(FieldColors)
+
+    except IOError as e:
+        sys.stdout.write(
+            P("ERROR: Cannot open regfile '%s': %s\n" % (filename, e), BitClr)
+        )
+        sys.exit(1)
+
+    return fields
+
+def CheckFieldOverlaps(fields):
+    """Check for overlapping field definitions and warn."""
+    for i, f1 in enumerate(fields):
+        for f2 in fields[i+1:]:
+            # Check if fields overlap
+            if not (f1.msb < f2.lsb or f2.msb < f1.lsb):
+                sys.stdout.write(P("WARNING: Fields '%s' [%d:%d] and '%s' [%d:%d] overlap\n" %
+                                   (f1.name, f1.msb, f1.lsb, f2.name, f2.msb, f2.lsb),
+                                   BitClr))
+
+def GetFieldColorForBit(bit, fields):
+    """Return the color for a bit if it's in a field, otherwise None."""
+    for f in fields:
+        if f.contains_bit(bit):
+            return FieldColors[f.color_idx]
+    return None
+
+def FormatFieldValue(val, width):
+    """Format a field value for display."""
+    if width == 1:
+        return "%d (%s)" % (val, "SET" if val else "CLEAR")
+    return "0x%x (%d)" % (val, val)
+
+
+def DisplayFields(v, fields, v2=None):
+    """Display field values summary. If v2 provided, show diff."""
+    if not fields:
+        return ''
+
+    out = '\n' + P("Fields:\n", ValClr)
+
+    # Find max lengths for alignment
+    max_name = max(len(f.name) for f in fields)
+    max_bits = max(
+        len("[%d:%d]" % (f.msb, f.lsb)) if f.msb != f.lsb else len("[%d]" % f.msb)
+        for f in fields
+    )
+
+    for f in sorted(fields, key=lambda x: x.msb, reverse=True):
+        val = f.extract(v)
+        color = FieldColors[f.color_idx]
+        bit_str = "[%d]" % f.msb if f.msb == f.lsb else "[%d:%d]" % (f.msb, f.lsb)
+        prefix = "  %-*s %-*s = " % (max_name, f.name, max_bits, bit_str)
+
+        if v2 is not None:
+            val2 = f.extract(v2)
+            if val != val2:
+                # Changed value
+                if f.width() == 1:
+                    out += P(prefix + "%d -> %d " % (val, val2), color)
+                else:
+                    out += P(prefix + "0x%x -> 0x%x " % (val, val2), color)
+                out += P("(CHANGED)\n", DiffClr)
+                continue
+
+        out += P(prefix + FormatFieldValue(val, f.width()) + "\n", color)
 
     return out
+
+def BChar(border, c):
+    return BORDER_CHARS.get((useASCII, border), {}).get(c, ' ')
+
+def P(msg, clr=NormClr):
+    return "%s%s%s" % (str(clr), msg, str(NormClr))
 
 def BuildBorders(n):
     global topBorder, midBorder, botBorder
@@ -159,42 +494,96 @@ def BuildBorders(n):
         right = BChar(border, 'Right')
         mid   = BChar(border, 'Mid')
         for c in range(n):
-            if c == 0:         out += P("%s%s"   % (left, dash),  BorderColor)
-            elif c == (n - 1): out += P("%s%s\n" % (dash, right), BorderColor)
-            elif (c % 8) == 0: out += P("%s%s"   % (mid, dash),   BorderColor)
-            else:              out += P(           dash,          BorderColor)
+            if c == 0:         out += P("%s%s"   % (left, dash),  BordClr)
+            elif c == (n - 1): out += P("%s%s\n" % (dash, right), BordClr)
+            elif (c % 8) == 0: out += P("%s%s"   % (mid, dash),   BordClr)
+            else:              out += P(           dash,          BordClr)
         return out
 
     topBorder = BuildBorder(Top, n)
     midBorder = BuildBorder(Mid, n)
     botBorder = BuildBorder(Bot, n)
 
-def PGroup(n, sb, v):
+
+def PBit(n, bit, val, bitVal=0, isDiff=False, fields=None, sb=0):
+    """Unified function to color a single bit cell.
+
+    Args:
+        n: Total bits in row
+        bit: Current bit position (0 = rightmost)
+        val: Value to display (0 or 1)
+        bitVal: Whether the bit is set (for coloring)
+        isDiff: If True, use diff highlighting color
+        fields: Optional field definitions for field coloring
+        sb: Start bit offset for field lookup
+    """
+    vert = BChar(Mid, 'Vert')
+    out = ''
+
+    if bit == (n - 1):
+        out += P(vert, BordClr)
+
+    # Determine color: diff > field > bit set > normal
+    if isDiff:
+        clr = DiffClr
+    else:
+        actual_bit = bit + sb
+        field_color = GetFieldColorForBit(actual_bit, fields) if fields else None
+        if field_color:
+            clr = field_color
+        elif bitVal == 1:
+            clr = BitClr
+        else:
+            clr = NormClr
+
+    out += P('%d' % val, clr)
+
+    if (bit % 8) == 0:
+        out += P(vert, BordClr)
+        if not bit:
+            out += '\n'
+
+    return out
+
+
+def PGroup(n, sb, v, diffMask=None, fields=None):
+    """Display a bit group with borders.
+
+    Args:
+        n: Number of bits (32 or 64)
+        sb: Start bit offset
+        v: Value to display
+        diffMask: Optional mask of bits that differ (for highlighting)
+        fields: Optional field definitions for coloring
+    """
     global topBorder, midBorder, botBorder
     s0 = ''
     s1 = ''
     s2 = ''
     s3 = ''
-    if (sb + n) >= 100:
-        for b in reversed(range(n)):
-            SB = b + sb
-            BSET = ((v & (1 << b)) != 0)
-            s0 += PColor(n, b, BSET,            BSET)
-            s1 += PColor(n, b, (SB / 100),      BSET)
-            s2 += PColor(n, b, (SB % 100) / 10, BSET)
-            s3 += PColor(n, b, (SB % 100) % 10, BSET)
-        out = "%s%s%s%s%s%s%s" % \
-                  (topBorder, s0, midBorder, s1, s2, s3, botBorder)
+
+    use_3_digit = (sb + n) >= 100
+
+    for b in reversed(range(n)):
+        SB = b + sb
+        BSET = ((v & (1 << b)) != 0)
+        DIFF = ((diffMask & (1 << b)) != 0) if diffMask is not None else False
+
+        s0 += PBit(n, b, BSET, BSET, DIFF, fields, sb)
+        if use_3_digit:
+            s1 += PBit(n, b, (SB // 100),      BSET, DIFF, fields, sb)
+            s2 += PBit(n, b, (SB % 100) // 10, BSET, DIFF, fields, sb)
+            s3 += PBit(n, b, (SB % 100) % 10,  BSET, DIFF, fields, sb)
+        else:
+            s1 += PBit(n, b, (SB // 10), BSET, DIFF, fields, sb)
+            s2 += PBit(n, b, (SB % 10),  BSET, DIFF, fields, sb)
+
+    if use_3_digit:
+        return "%s%s%s%s%s%s%s" % \
+            (topBorder, s0, midBorder, s1, s2, s3, botBorder)
     else:
-        for b in reversed(range(n)):
-            SB = b + sb
-            BSET = ((v & (1 << b)) != 0)
-            s0 += PColor(n, b, BSET,      BSET)
-            s1 += PColor(n, b, (SB / 10), BSET)
-            s2 += PColor(n, b, (SB % 10), BSET)
-        out = "%s%s%s%s%s%s" % \
-                  (topBorder, s0, midBorder, s1, s2, botBorder)
-    return out
+        return "%s%s%s%s%s%s" % \
+            (topBorder, s0, midBorder, s1, s2, botBorder)
 
 def BadBitArg(b):
     sys.stdout.write(P("ERROR: Invalid bit value \"%s\"\n" % b))
@@ -202,7 +591,7 @@ def BadBitArg(b):
 
 def StrToBit(b):
     v = int(b, 0)
-    if ((v < 0) or (v > 64)):
+    if ((v < 0) or (v > 127)):
         BadBitArg(b)
     return v
 
@@ -228,9 +617,728 @@ def GetBitArgsValue(arg):
                 BadBitArg(bitArg)
     return bitArgsValue
 
+def ParseValue(i):
+    """Parse a value string (supports dec, hex, oct, bin, bit ranges)."""
+    if i.find(",") != -1 or (i.find("-") != -1 and not i.startswith("0x") and not i.startswith("0X") and not i.startswith("-0") and not i[0].isdigit()):
+        return GetBitArgsValue(i)
+    else:
+        return int(i, 0)
+
+def GetBitWidth(v):
+    """Determine appropriate bit width for value (32, 64, or 128)."""
+    if v <= ULONG_MAX:
+        return 32
+    elif v <= ULLONG_MAX:
+        return 64
+    elif v <= U128_MAX:
+        return 128
+    else:
+        return 128  # Cap at 128 for bitwise ops
+
+def GetMaskForWidth(width):
+    """Get the bitmask for a given width."""
+    if width == 32:
+        return ULONG_MAX
+    elif width == 64:
+        return ULLONG_MAX
+    else:
+        return U128_MAX
+
+def ByteSwap(v, width):
+    """Swap byte order of a value (full byte swap)."""
+    result = 0
+    num_bytes = width // 8
+    for i in range(num_bytes):
+        byte = (v >> (i * 8)) & 0xff
+        result |= byte << ((num_bytes - 1 - i) * 8)
+    return result
+
+def ByteSwap16(v, width):
+    """Swap bytes within each 16-bit word."""
+    result = 0
+    num_words = width // 16
+    for i in range(num_words):
+        word = (v >> (i * 16)) & 0xffff
+        swapped = ((word & 0xff) << 8) | ((word >> 8) & 0xff)
+        result |= swapped << (i * 16)
+    return result
+
+def RotateLeft(v, n, width):
+    """Rotate value left by n bits within given width."""
+    n = n % width  # Handle rotations >= width
+    mask = GetMaskForWidth(width)
+    return ((v << n) | (v >> (width - n))) & mask
+
+def RotateRight(v, n, width):
+    """Rotate value right by n bits within given width."""
+    n = n % width  # Handle rotations >= width
+    mask = GetMaskForWidth(width)
+    return ((v >> n) | (v << (width - n))) & mask
+
+def ParseFieldSpec(spec):
+    """Parse MSB:LSB or BIT field spec, return (msb, lsb) tuple."""
+    if ':' in spec:
+        parts = spec.split(':')
+        msb = int(parts[0])
+        lsb = int(parts[1])
+        if msb < lsb:
+            msb, lsb = lsb, msb
+        return (msb, lsb)
+    else:
+        bit = int(spec)
+        return (bit, bit)
+
+def GenerateMask(bit_spec):
+    """Generate a bitmask from a bit specification (e.g., '4,7-11,31')."""
+    return GetBitArgsValue(bit_spec)
+
+def ToSigned(v, width):
+    """Convert unsigned value to signed based on bit width."""
+    if width == 32:
+        if v >= 0x80000000:
+            return v - 0x100000000
+    elif width == 64:
+        if v >= 0x8000000000000000:
+            return v - 0x10000000000000000
+    elif width == 128:
+        if v >= (1 << 127):
+            return v - (1 << 128)
+    return v
+
+
+def FormatHex(v, width, prefix=True):
+    """Format value as hex string with appropriate padding for width."""
+    digits = 8 if width <= 32 else (16 if width <= 64 else 32)
+    result = ("%%0%dx" % digits) % v
+    return ("0x" + result) if prefix else result
+
+
+def FormatBin(v, width, prefix=True):
+    """Format value as binary string with appropriate padding for width."""
+    bits = 32 if width <= 32 else (64 if width <= 64 else 128)
+    result = format(v, '0%db' % bits)
+    return ("0b" + result) if prefix else result
+
+
+def Popcount(v):
+    """Count number of set bits."""
+    count = 0
+    while v:
+        count += v & 1
+        v >>= 1
+    return count
+
+def LeadingZeros(v, width):
+    """Count leading zeros for given bit width."""
+    if v == 0:
+        return width
+    count = 0
+    for i in range(width - 1, -1, -1):
+        if v & (1 << i):
+            break
+        count += 1
+    return count
+
+def TrailingZeros(v):
+    """Count trailing zeros."""
+    if v == 0:
+        return -1  # undefined for 0
+    count = 0
+    while (v & 1) == 0:
+        count += 1
+        v >>= 1
+    return count
+
+def HighestSetBit(v):
+    """Return position of highest set bit (0-indexed), -1 if v=0."""
+    if v == 0:
+        return -1
+    pos = -1
+    while v:
+        pos += 1
+        v >>= 1
+    return pos
+
+def LowestSetBit(v):
+    """Return position of lowest set bit (0-indexed), -1 if v=0."""
+    if v == 0:
+        return -1
+    pos = 0
+    while (v & 1) == 0:
+        pos += 1
+        v >>= 1
+    return pos
+
+def DisplayStats(v, width):
+    """Display bit statistics for a value."""
+    out = '\n' + P("Statistics:\n", ValClr)
+    out += P("  popcount      = %d\n" % Popcount(v), NormClr)
+    out += P("  leading zeros = %d\n" % LeadingZeros(v, width), NormClr)
+    tz = TrailingZeros(v)
+    out += P("  trailing zeros= %s\n" % (str(tz) if tz >= 0 else "N/A"), NormClr)
+    hsb = HighestSetBit(v)
+    out += P("  highest set   = %s\n" % (str(hsb) if hsb >= 0 else "N/A"), NormClr)
+    lsb = LowestSetBit(v)
+    out += P("  lowest set    = %s\n" % (str(lsb) if lsb >= 0 else "N/A"), NormClr)
+    return out
+
+def DisplayMultiBase(v, width):
+    """Display value in multiple bases."""
+    out = ''
+    if showDec:
+        out += P("  dec: %d\n" % v, NormClr)
+    if showOct:
+        out += P("  oct: 0o%o\n" % v, NormClr)
+    if showBin:
+        out += P("  bin: %s\n" % FormatBin(v, width), NormClr)
+    if showSigned:
+        signed_v = ToSigned(v, width)
+        out += P("  signed: %d\n" % signed_v, NormClr)
+    return out
+
+
+def FormatBinaryUnderscore(v, width):
+    """Format binary with underscore-separated bytes."""
+    bin_str = FormatBin(v, width, prefix=False)
+    # Insert underscores every 8 bits
+    parts = [bin_str[i:i+8] for i in range(0, len(bin_str), 8)]
+    return '_'.join(parts)
+
+
+def DisplayCompact(v, width):
+    """Display value in compact single-line format with binary and stats."""
+    hex_str = FormatHex(v, width)
+    bin_str = FormatBinaryUnderscore(v, width)
+
+    # Stats
+    pop = Popcount(v)
+    hi = HighestSetBit(v)
+    lo = LowestSetBit(v)
+
+    hi_str = str(hi) if hi >= 0 else "-"
+    lo_str = str(lo) if lo >= 0 else "-"
+
+    out = P(hex_str, ValClr)
+    out += P(" = ", NormClr)
+    out += P(bin_str, BitClr)
+    out += P(" (%d) " % v, NormClr)
+    out += P("[pop:%d hi:%s lo:%s]" % (pop, hi_str, lo_str), BordClr)
+    out += "\n"
+    return out
+
+def FormatOutput(v, width, fmt):
+    """Format value according to custom format string.
+
+    Format specifiers:
+      %h   - hex value (with 0x prefix, zero-padded to width)
+      %H   - hex value (no prefix, zero-padded)
+      %d   - decimal value (unsigned)
+      %s   - signed decimal value
+      %o   - octal value (with 0o prefix)
+      %O   - octal value (no prefix)
+      %b   - binary value (with 0b prefix)
+      %B   - binary value (no prefix)
+      %p   - popcount (number of set bits)
+      %hi  - highest set bit (-1 if none)
+      %lo  - lowest set bit (-1 if none)
+      %lz  - leading zeros
+      %tz  - trailing zeros (-1 if value is 0)
+      %w   - bit width
+      %%   - literal %
+    """
+    result = ""
+    i = 0
+    while i < len(fmt):
+        if fmt[i] == '%' and i + 1 < len(fmt):
+            # Check for two-character specifiers first
+            if i + 2 < len(fmt):
+                spec2 = fmt[i+1:i+3]
+                if spec2 == 'hi':
+                    result += str(HighestSetBit(v))
+                    i += 3
+                    continue
+                elif spec2 == 'lo':
+                    result += str(LowestSetBit(v))
+                    i += 3
+                    continue
+                elif spec2 == 'lz':
+                    result += str(LeadingZeros(v, width))
+                    i += 3
+                    continue
+                elif spec2 == 'tz':
+                    result += str(TrailingZeros(v))
+                    i += 3
+                    continue
+
+            # Single character specifiers
+            spec = fmt[i+1]
+            if spec == 'h':
+                result += FormatHex(v, width, prefix=True)
+            elif spec == 'H':
+                result += FormatHex(v, width, prefix=False)
+            elif spec == 'd':
+                result += str(v)
+            elif spec == 's':
+                result += str(ToSigned(v, width))
+            elif spec == 'o':
+                result += "0o%o" % v
+            elif spec == 'O':
+                result += "%o" % v
+            elif spec == 'b':
+                result += FormatBin(v, width, prefix=True)
+            elif spec == 'B':
+                result += FormatBin(v, width, prefix=False)
+            elif spec == 'p':
+                result += str(Popcount(v))
+            elif spec == 'w':
+                result += str(width)
+            elif spec == '%':
+                result += '%'
+            else:
+                # Unknown specifier, keep as-is
+                result += '%' + spec
+            i += 2
+        else:
+            result += fmt[i]
+            i += 1
+    return result
+
+def ReplDisplayValue(v, repl_fields, repl_compact, repl_format, repl_stats):
+    """Display a value in REPL mode with current settings."""
+    width = GetBitWidth(v)
+    out = ''
+
+    if repl_compact:
+        out = DisplayCompact(v, width)
+    elif repl_format:
+        out = FormatOutput(v, width, repl_format) + "\n"
+    else:
+        display_out, _ = DisplayValue(v, 0, fields=repl_fields)
+        out = display_out
+        if repl_fields:
+            out += DisplayFields(v, repl_fields)
+
+    if repl_stats and not repl_compact:
+        out += DisplayStats(v, width)
+
+    return out
+
+def ReplHelp():
+    """Return REPL help text."""
+    return '''Commands:
+  <value>                  display value (hex, dec, oct, bin, bit-spec)
+  :expr <expression>       evaluate bitwise expression
+  :or <v1> <v2>            bitwise OR
+  :and <v1> <v2>           bitwise AND
+  :xor <v1> <v2>           bitwise XOR
+  :not <v>                 bitwise NOT
+  :diff <v1> <v2>          show diff with changed bits highlighted
+  :def <fields>            define fields (e.g., :def [7:0]=DATA,[15:8]=STATUS)
+  :load <file>             load field definitions from file
+  :fields                  show current field definitions
+  :clear                   clear field definitions
+  :compact [on|off]        toggle/set compact mode
+  :format [<fmt>]          set/clear output format (e.g., :format %h (%d))
+  :stats [on|off]          toggle/set stats display
+  :theme <name>            set color theme (dark, light)
+  :help, :h, :?            show this help
+  :quit, :q                exit REPL
+'''
+
+class ReplState:
+    """Holds the mutable state for the REPL session."""
+    def __init__(self, initial_fields):
+        self.fields = list(initial_fields) if initial_fields else []
+        self.compact = False
+        self.format = None
+        self.stats = False
+
+    def display(self, value):
+        """Display a value using current REPL settings."""
+        return ReplDisplayValue(
+            value, self.fields, self.compact, self.format, self.stats
+        )
+
+
+def ReplCmdExpr(args, state):
+    """Handle :expr command."""
+    if not args:
+        sys.stdout.write(P("Usage: :expr <expression>\n", BitClr))
+        return None
+    try:
+        result = EvalExpr(args)
+        sys.stdout.write(state.display(result))
+    except ValueError as e:
+        sys.stdout.write(P("ERROR: %s\n" % str(e), BitClr))
+    return None
+
+
+def ReplCmdBinaryOp(args, state, op_name, op_func):
+    """Handle binary bitwise operations (OR, AND, XOR)."""
+    vals = args.split()
+    if len(vals) != 2:
+        sys.stdout.write(
+            P("Usage: :%s <value1> <value2>\n" % op_name.lower(), BitClr)
+        )
+        return None
+    try:
+        v1 = ParseValue(vals[0])
+        v2 = ParseValue(vals[1])
+        result = op_func(v1, v2)
+        sys.stdout.write(P("%s:\n" % op_name, ValClr))
+        sys.stdout.write(state.display(v1))
+        sys.stdout.write(P("%s\n" % op_name, ValClr))
+        sys.stdout.write(state.display(v2))
+        sys.stdout.write(P("=\n", ValClr))
+        sys.stdout.write(state.display(result))
+    except ValueError as e:
+        sys.stdout.write(P("ERROR: %s\n" % str(e), BitClr))
+    return None
+
+
+def ReplCmdOr(args, state):
+    """Handle :or command."""
+    return ReplCmdBinaryOp(args, state, 'OR', lambda a, b: a | b)
+
+
+def ReplCmdAnd(args, state):
+    """Handle :and command."""
+    return ReplCmdBinaryOp(args, state, 'AND', lambda a, b: a & b)
+
+
+def ReplCmdXor(args, state):
+    """Handle :xor command."""
+    return ReplCmdBinaryOp(args, state, 'XOR', lambda a, b: a ^ b)
+
+
+def ReplCmdNot(args, state):
+    """Handle :not command."""
+    if not args:
+        sys.stdout.write(P("Usage: :not <value>\n", BitClr))
+        return None
+    try:
+        v = ParseValue(args.split()[0])
+        width = GetBitWidth(v)
+        mask = GetMaskForWidth(width)
+        result = (~v) & mask
+        sys.stdout.write(P("NOT:\n", ValClr))
+        sys.stdout.write(state.display(v))
+        sys.stdout.write(P("=\n", ValClr))
+        sys.stdout.write(state.display(result))
+    except ValueError as e:
+        sys.stdout.write(P("ERROR: %s\n" % str(e), BitClr))
+    return None
+
+
+def ReplCmdDiff(args, state):
+    """Handle :diff command."""
+    vals = args.split()
+    if len(vals) != 2:
+        sys.stdout.write(P("Usage: :diff <value1> <value2>\n", BitClr))
+        return None
+    try:
+        v1 = ParseValue(vals[0])
+        v2 = ParseValue(vals[1])
+        diffMask = v1 ^ v2
+        sys.stdout.write(P("DIFF (changed bits highlighted):\n", ValClr))
+        out1, _ = DisplayValue(v1, 0, diffMask, fields=state.fields)
+        sys.stdout.write(out1)
+        sys.stdout.write(P("vs\n", ValClr))
+        out2, _ = DisplayValue(v2, 0, diffMask, fields=state.fields)
+        sys.stdout.write(out2)
+        if state.fields:
+            sys.stdout.write(DisplayFields(v1, state.fields, v2))
+        sys.stdout.write(P("XOR (bits that differ):\n", ValClr))
+        sys.stdout.write(state.display(diffMask))
+    except ValueError as e:
+        sys.stdout.write(P("ERROR: %s\n" % str(e), BitClr))
+    return None
+
+
+def ReplCmdDef(args, state):
+    """Handle :def command."""
+    if not args:
+        sys.stdout.write(P("Usage: :def [MSB:LSB]=NAME,...\n", BitClr))
+        return None
+    try:
+        new_fields = ParseFieldDef(args)
+        state.fields.extend(new_fields)
+        CheckFieldOverlaps(state.fields)
+        sys.stdout.write(
+            P("Defined %d field(s).\n" % len(new_fields), NormClr)
+        )
+    except SystemExit:
+        pass
+    return None
+
+
+def ReplCmdLoad(args, state):
+    """Handle :load command."""
+    if not args:
+        sys.stdout.write(P("Usage: :load <filename>\n", BitClr))
+        return None
+    try:
+        filename = args.strip()
+        new_fields = LoadRegFile(filename)
+        state.fields.extend(new_fields)
+        CheckFieldOverlaps(state.fields)
+        sys.stdout.write(
+            P("Loaded %d field(s) from %s.\n" % (len(new_fields), filename),
+              NormClr)
+        )
+    except SystemExit:
+        pass
+    return None
+
+
+def ReplCmdFields(args, state):
+    """Handle :fields command."""
+    if not state.fields:
+        sys.stdout.write(P("No fields defined.\n", NormClr))
+    else:
+        sys.stdout.write(P("Defined fields:\n", ValClr))
+        for f in sorted(state.fields, key=lambda x: x.msb, reverse=True):
+            color = FieldColors[f.color_idx]
+            if f.msb == f.lsb:
+                sys.stdout.write(P("  [%d]=%s\n" % (f.msb, f.name), color))
+            else:
+                sys.stdout.write(
+                    P("  [%d:%d]=%s\n" % (f.msb, f.lsb, f.name), color)
+                )
+    return None
+
+
+def ReplCmdClear(args, state):
+    """Handle :clear command."""
+    state.fields = []
+    sys.stdout.write(P("Field definitions cleared.\n", NormClr))
+    return None
+
+
+def ParseBoolArg(args, current_value):
+    """Parse a boolean toggle argument.
+
+    Args:
+        args: Argument string (empty to toggle, or 'on'/'off'/'true'/'false')
+        current_value: Current boolean value
+
+    Returns:
+        (new_value, error) tuple. error is True if invalid argument.
+    """
+    if not args:
+        return (not current_value, False)
+    arg_lower = args.lower()
+    if arg_lower in ('on', 'true', '1'):
+        return (True, False)
+    elif arg_lower in ('off', 'false', '0'):
+        return (False, False)
+    return (current_value, True)
+
+
+def ReplCmdCompact(args, state):
+    """Handle :compact command."""
+    new_val, error = ParseBoolArg(args, state.compact)
+    if error:
+        sys.stdout.write(P("Usage: :compact [on|off]\n", BitClr))
+        return None
+    state.compact = new_val
+    status = "on" if state.compact else "off"
+    sys.stdout.write(P("Compact mode: %s\n" % status, NormClr))
+    return None
+
+
+def ReplCmdFormat(args, state):
+    """Handle :format command."""
+    if not args:
+        state.format = None
+        sys.stdout.write(P("Format cleared.\n", NormClr))
+    else:
+        state.format = args
+        sys.stdout.write(P("Format set: %s\n" % state.format, NormClr))
+    return None
+
+
+def ReplCmdStats(args, state):
+    """Handle :stats command."""
+    new_val, error = ParseBoolArg(args, state.stats)
+    if error:
+        sys.stdout.write(P("Usage: :stats [on|off]\n", BitClr))
+        return None
+    state.stats = new_val
+    status = "on" if state.stats else "off"
+    sys.stdout.write(P("Stats display: %s\n" % status, NormClr))
+    return None
+
+
+def ReplCmdTheme(args, state):
+    """Handle :theme command."""
+    if not args:
+        sys.stdout.write(P("Usage: :theme <dark|light>\n", BitClr))
+        return None
+    if ApplyTheme(args.lower()):
+        sys.stdout.write(P("Theme set to: %s\n" % args.lower(), NormClr))
+    else:
+        sys.stdout.write(
+            P("Unknown theme: %s (available: dark, light)\n" % args, BitClr)
+        )
+    return None
+
+
+def ReplCmdHelp(args, state):
+    """Handle :help command."""
+    sys.stdout.write(ReplHelp())
+    return None
+
+
+def ReplHandleValue(line, state):
+    """Handle a plain value (not a command)."""
+    try:
+        v = ParseValue(line)
+        sys.stdout.write(state.display(v))
+    except ValueError as e:
+        sys.stdout.write(P("ERROR: %s\n" % str(e), BitClr))
+    except:
+        sys.stdout.write(P("ERROR: Invalid value: %s\n" % line, BitClr))
+    return None
+
+
+# Command dispatch table: maps command names to handler functions
+REPL_COMMANDS = {
+    'help': ReplCmdHelp,
+    'h': ReplCmdHelp,
+    '?': ReplCmdHelp,
+    'expr': ReplCmdExpr,
+    'or': ReplCmdOr,
+    'and': ReplCmdAnd,
+    'xor': ReplCmdXor,
+    'not': ReplCmdNot,
+    'diff': ReplCmdDiff,
+    'def': ReplCmdDef,
+    'load': ReplCmdLoad,
+    'fields': ReplCmdFields,
+    'clear': ReplCmdClear,
+    'compact': ReplCmdCompact,
+    'format': ReplCmdFormat,
+    'stats': ReplCmdStats,
+    'theme': ReplCmdTheme,
+}
+
+
+def RunRepl(initial_fields):
+    """Run the interactive REPL."""
+    state = ReplState(initial_fields)
+
+    sys.stdout.write(
+        P("bitter REPL - type :help for commands, :quit to exit\n", ValClr)
+    )
+
+    while True:
+        try:
+            sys.stdout.write(P("bitter> ", BordClr))
+            sys.stdout.flush()
+            line = sys.stdin.readline()
+            if not line:  # EOF
+                break
+            line = line.strip()
+            if not line:
+                continue
+
+            # Parse commands starting with :
+            if line.startswith(':'):
+                parts = line[1:].split(None, 1)
+                cmd = parts[0].lower() if parts else ''
+                cmd_args = parts[1] if len(parts) > 1 else ''
+
+                if cmd in ('quit', 'q'):
+                    break
+                elif cmd in REPL_COMMANDS:
+                    REPL_COMMANDS[cmd](cmd_args, state)
+                else:
+                    sys.stdout.write(
+                        P("Unknown command: :%s (type :help for commands)\n"
+                          % cmd, BitClr)
+                    )
+            else:
+                ReplHandleValue(line, state)
+
+        except KeyboardInterrupt:
+            sys.stdout.write("\n")
+            break
+        except EOFError:
+            break
+
+    sys.stdout.write(P("Goodbye!\n", ValClr))
+
+def DisplayValue(v, sb=0, diffMask=None, label=None, fields=None):
+    """Display value with optional diff and field coloring. Returns new sb."""
+    out = ''
+
+    if label:
+        out += P("%s: " % label, ValClr)
+
+    if (v <= ULONG_MAX):
+        BuildBorders(32)
+        out += P("0x%08x\n" % v, ValClr)
+        out += PGroup(32, sb, v, diffMask, fields)
+        return out, sb + 32
+
+    elif (v <= ULLONG_MAX):
+        BuildBorders(64)
+        out += P("0x%016x\n" % v, ValClr)
+        out += PGroup(64, sb, v, diffMask, fields)
+        return out, sb + 64
+
+    elif (v <= U128_MAX):
+        BuildBorders(64)
+        out += P("0x%032x\n" % v, ValClr)
+
+        # Upper 64 bits (127-64)
+        upper = (v >> 64) & 0xffffffffffffffff
+        upperDiff = (diffMask >> 64) & 0xffffffffffffffff if diffMask else None
+        out += P("    0x%016x\n" % upper, ValClr)
+        out += PGroup(64, sb + 64, upper, upperDiff, fields)
+
+        # Lower 64 bits (63-0)
+        lower = v & 0xffffffffffffffff
+        lowerDiff = diffMask & 0xffffffffffffffff if diffMask else None
+        out += P("    0x%016x\n" % lower, ValClr)
+        out += PGroup(64, sb, lower, lowerDiff, fields)
+
+        return out, sb + 128
+
+    else:
+        # Fallback for values > 128 bits
+        BuildBorders(64)
+        j = 0
+        tmp = v
+        while tmp:
+            j += 1
+            tmp >>= 64
+        if not j:
+            j = 1
+        out += P(("0x%0" + str(j * 16) + "x\n") % v, ValClr)
+        if j == 1:
+            out += PGroup(64, sb, v, fields=fields)
+            return out, sb + 64
+        tmp_v = v
+        for _ in range(j):
+            tmp = tmp_v & 0xffffffffffffffff
+            tmp_v >>= 64
+            out += P("    0x%016x\n" % tmp, ValClr)
+            out += PGroup(64, sb, tmp, fields=fields)
+            sb += 64
+        return out, sb
+
 try:
-    opts, args = getopt.getopt(sys.argv[1:], 'hnab',
-                               ['sb=', 'vc=','bc=','ic=','nc='])
+    opts, args = getopt.getopt(sys.argv[1:], 'hnabc',
+                               ['sb=', 'vc=','bc=','ic=','nc=',
+                                'not', 'or', 'and', 'xor', 'xnor', 'diff',
+                                'def=', 'regfile=',
+                                'mask', 'mask-inv', 'field=', 'bswap', 'bswap16',
+                                'signed', 'stats', 'dec', 'oct', 'bin',
+                                'shl=', 'shr=', 'rol=', 'ror=',
+                                'set=', 'clear=', 'width=', 'compact',
+                                'theme=', 'expr=', 'format=', 'repl'])
 except:
     Usage()
 
@@ -238,73 +1346,399 @@ for opt, arg in opts:
     if (opt == '-h'):
         Usage()
     elif (opt == '-n'):
-        ValueColor  = CLR("")
-        BorderColor = CLR("")
-        BitColor    = CLR("")
-        NormalColor = CLR("")
+        ValClr  = CLR("")
+        BordClr = CLR("")
+        BitClr    = CLR("")
+        NormClr = CLR("")
+        DiffClr   = CLR("")
+        FieldColors = [CLR("") for _ in FieldColors]
     elif (opt == '-a'):
         useASCII = True
     elif (opt == '-b'):
         resetBit = True
+    elif (opt == '-c') or (opt == '--compact'):
+        compactMode = True
     elif (opt == '--sb'):
         startBit = int(arg, 0)
     elif (opt == '--vc'):
-        ValueColor = CLR(arg)
+        ValClr = CLR(arg)
     elif (opt == '--bc'):
-        BorderColor = CLR(arg)
+        BordClr = CLR(arg)
     elif (opt == '--ic'):
-        BitColor = CLR(arg)
+        BitClr = CLR(arg)
     elif (opt == '--nc'):
-        NormalColor = CLR(arg)
+        NormClr = CLR(arg)
+    elif (opt == '--theme'):
+        if not ApplyTheme(arg):
+            sys.stdout.write(P("ERROR: Unknown theme '%s'. Available: dark, light\n" % arg,
+                               BitClr))
+            Usage()
+    elif (opt == '--not'):
+        bitwiseOp = 'not'
+    elif (opt == '--or'):
+        bitwiseOp = 'or'
+    elif (opt == '--and'):
+        bitwiseOp = 'and'
+    elif (opt == '--xor'):
+        bitwiseOp = 'xor'
+    elif (opt == '--xnor'):
+        bitwiseOp = 'xnor'
+    elif (opt == '--diff'):
+        bitwiseOp = 'diff'
+    elif (opt == '--def'):
+        fieldDefs.extend(ParseFieldDef(arg))
+    elif (opt == '--regfile'):
+        fieldDefs.extend(LoadRegFile(arg))
+    elif (opt == '--mask'):
+        maskMode = 'mask'
+    elif (opt == '--mask-inv'):
+        maskMode = 'mask-inv'
+    elif (opt == '--field'):
+        fieldExtract = ParseFieldSpec(arg)
+    elif (opt == '--bswap'):
+        bswapMode = 'bswap'
+    elif (opt == '--bswap16'):
+        bswapMode = 'bswap16'
+    elif (opt == '--signed'):
+        showSigned = True
+    elif (opt == '--stats'):
+        showStats = True
+    elif (opt == '--dec'):
+        showDec = True
+    elif (opt == '--oct'):
+        showOct = True
+    elif (opt == '--bin'):
+        showBin = True
+    elif (opt == '--shl'):
+        shiftLeft = int(arg, 0)
+    elif (opt == '--shr'):
+        shiftRight = int(arg, 0)
+    elif (opt == '--rol'):
+        rotateLeft = int(arg, 0)
+    elif (opt == '--ror'):
+        rotateRight = int(arg, 0)
+    elif (opt == '--set'):
+        setBits = arg
+    elif (opt == '--clear'):
+        clearBits = arg
+    elif (opt == '--width'):
+        forceWidth = int(arg, 0)
+        if forceWidth not in [8, 16, 32, 64, 128]:
+            sys.stdout.write(P("ERROR: --width must be 8, 16, 32, 64, or 128\n",
+                               BitClr))
+            Usage()
+    elif (opt == '--expr'):
+        exprMode = arg
+    elif (opt == '--format'):
+        formatStr = arg
+    elif (opt == '--repl'):
+        replMode = True
+
+
+def DisplayWithExtras(v, sb, width, fieldDefs, showDec, showOct, showBin,
+                      showSigned, showStats):
+    """Display a value with optional extras (fields, multi-base, stats).
+
+    Unified function for normal mode display at any width.
+    """
+    out = ''
+
+    if width <= 32:
+        BuildBorders(32)
+        out += P("0x%08x\n" % v, ValClr)
+        out += PGroup(32, sb, v, fields=fieldDefs)
+        display_width = 32
+
+    elif width <= 64:
+        BuildBorders(64)
+        out += P("0x%016x\n" % v, ValClr)
+        out += PGroup(64, sb, v, fields=fieldDefs)
+        display_width = 64
+
+    elif width <= 128:
+        BuildBorders(64)
+        out += P("0x%032x\n" % v, ValClr)
+        upper = (v >> 64) & 0xffffffffffffffff
+        out += P("    0x%016x\n" % upper, ValClr)
+        out += PGroup(64, sb + 64, upper, fields=fieldDefs)
+        lower = v & 0xffffffffffffffff
+        out += P("    0x%016x\n" % lower, ValClr)
+        out += PGroup(64, sb, lower, fields=fieldDefs)
+        display_width = 128
+
+    else:
+        # Arbitrary width (>128 bits)
+        BuildBorders(64)
+        j = max(1, v.bit_length() // 64 + (1 if v.bit_length() % 64 else 0))
+        if not v:
+            j = 1
+        out += P(("0x%0" + str(j * 16) + "x\n") % v, ValClr)
+        tmp_v = v
+        for _ in range(j):
+            tmp = tmp_v & 0xffffffffffffffff
+            tmp_v >>= 64
+            out += P("    0x%016x\n" % tmp, ValClr)
+            out += PGroup(64, sb, tmp, fields=fieldDefs)
+            sb += 64
+        display_width = j * 64
+        # No extras for arbitrary width
+        return out, sb
+
+    # Add extras for standard widths
+    if fieldDefs:
+        out += DisplayFields(v, fieldDefs)
+    if showDec or showOct or showBin or showSigned:
+        out += DisplayMultiBase(v, display_width)
+    if showStats:
+        out += DisplayStats(v, display_width)
+
+    return out, sb + display_width
+
+
+# Check for field overlaps if fields were defined
+if fieldDefs:
+    CheckFieldOverlaps(fieldDefs)
+
+# Handle REPL mode
+if replMode:
+    RunRepl(fieldDefs)
+    sys.exit(0)
+
+# Read from stdin if no args and stdin is not a tty (but not if --expr is set)
+if not args and not exprMode and not sys.stdin.isatty():
+    stdin_data = sys.stdin.read().strip()
+    # Split on whitespace and/or newlines
+    for token in stdin_data.split():
+        if token:
+            args.append(token)
 
 sb = startBit
 
-for i in args:
+# Handle expression evaluation mode
+if exprMode:
+    try:
+        result = EvalExpr(exprMode)
+        # Treat result like a normal value and continue to display it
+        args = [str(result)]
+    except ValueError as e:
+        sys.stdout.write(P("ERROR: %s\n" % str(e), BitClr))
+        sys.exit(1)
 
-    if resetBit:
-        sb = startBit
+# Handle mask generation mode
+if maskMode:
+    if len(args) != 1:
+        sys.stdout.write(P("ERROR: --mask/--mask-inv requires exactly 1 bit specification\n", BitClr))
+        sys.stdout.write(P("       Example: --mask 4,7-11,31\n", NormClr))
+        Usage()
 
-    if i.find(",") != -1 or i.find("-") != -1:
-        v = GetBitArgsValue(i)
+    mask = GenerateMask(args[0])
+    if maskMode == 'mask-inv':
+        width = GetBitWidth(mask)
+        full_mask = GetMaskForWidth(width)
+        mask = (~mask) & full_mask
+
+    # Output mask value in hex
+    sys.stdout.write(FormatHex(mask, GetBitWidth(mask)) + "\n")
+    sys.exit(0)
+
+# Handle field extraction mode
+if fieldExtract:
+    if len(args) != 1:
+        sys.stdout.write(P("ERROR: --field requires exactly 1 value\n", BitClr))
+        sys.stdout.write(P("       Example: --field=23:16 0xDEADBEEF\n", NormClr))
+        Usage()
+
+    msb, lsb = fieldExtract
+    v = ParseValue(args[0])
+    width = msb - lsb + 1
+    extracted = (v >> lsb) & ((1 << width) - 1)
+
+    if msb == lsb:
+        bit_str = "bit[%d]" % msb
     else:
-        v = int(i, 0)
+        bit_str = "bits[%d:%d]" % (msb, lsb)
 
-    if (v <= ULONG_MAX):
-
-        BuildBorders(32)
-
-        data += P("0x%08x\n" % v, ValueColor)
-        data += PGroup(32, sb, v)
-
-        sb += 32
-
+    # Output: bits[23:16] = 0xad (173)
+    if width == 1:
+        val_str = "SET" if extracted else "CLEAR"
+        sys.stdout.write("%s = %d (%s)\n" % (bit_str, extracted, val_str))
+    elif extracted <= 0xff:
+        sys.stdout.write("%s = 0x%02x (%d)\n" % (bit_str, extracted, extracted))
+    elif extracted <= 0xffff:
+        sys.stdout.write("%s = 0x%04x (%d)\n" % (bit_str, extracted, extracted))
+    elif extracted <= 0xffffffff:
+        sys.stdout.write("%s = 0x%08x (%d)\n" % (bit_str, extracted, extracted))
     else:
+        sys.stdout.write("%s = 0x%x (%d)\n" % (bit_str, extracted, extracted))
+    sys.exit(0)
 
-        BuildBorders(64)
+# Handle byte swap mode
+if bswapMode:
+    if len(args) != 1:
+        sys.stdout.write(P("ERROR: --bswap/--bswap16 requires exactly 1 value\n",
+                           BitClr))
+        Usage()
 
-        j = 0
-        tmp = v
-        while (tmp):
-            j += 1
-            tmp >>= 64
-        if not j:
-            j = 1
+    v = ParseValue(args[0])
+    width = GetBitWidth(v)
 
-        data += P(("0x%0" + str(j * 16) + "x\n") % v, ValueColor)
+    if bswapMode == 'bswap':
+        result = ByteSwap(v, width)
+    else:  # bswap16
+        result = ByteSwap16(v, width)
 
-        if j == 1:
-            data += PGroup(64, sb, v)
+    # Output result in appropriate hex format
+    sys.stdout.write(FormatHex(result, width) + "\n")
+    sys.exit(0)
+
+# Handle bitwise operations
+if bitwiseOp:
+    # Parse values based on operation type
+    if bitwiseOp == 'not':
+        if len(args) != 1:
+            sys.stdout.write(P("ERROR: --not requires exactly 1 value\n",
+                               BitClr))
+            Usage()
+        v1 = ParseValue(args[0])
+        width = GetBitWidth(v1)
+        mask = GetMaskForWidth(width)
+        result = (~v1) & mask
+
+        data += P("NOT:\n", ValClr)
+        out, sb = DisplayValue(v1, sb, fields=fieldDefs)
+        data += out
+        if fieldDefs:
+            data += DisplayFields(v1, fieldDefs)
+        data += P("=\n", ValClr)
+        out, sb = DisplayValue(result, startBit, fields=fieldDefs)
+        data += out
+        if fieldDefs:
+            data += DisplayFields(result, fieldDefs)
+
+    elif bitwiseOp in ['or', 'and', 'xor', 'xnor']:
+        if len(args) != 2:
+            sys.stdout.write(P("ERROR: --%s requires exactly 2 values\n" %
+                               bitwiseOp, BitClr))
+            Usage()
+        v1 = ParseValue(args[0])
+        v2 = ParseValue(args[1])
+
+        # Use the larger width of the two values
+        width = max(GetBitWidth(v1), GetBitWidth(v2))
+        mask = GetMaskForWidth(width)
+
+        if bitwiseOp == 'or':
+            result = v1 | v2
+            op_str = "OR"
+        elif bitwiseOp == 'and':
+            result = v1 & v2
+            op_str = "AND"
+        elif bitwiseOp == 'xor':
+            result = v1 ^ v2
+            op_str = "XOR"
+        elif bitwiseOp == 'xnor':
+            result = (~(v1 ^ v2)) & mask
+            op_str = "XNOR"
+
+        data += P("%s:\n" % op_str, ValClr)
+        out, _ = DisplayValue(v1, startBit, fields=fieldDefs)
+        data += out
+        data += P("%s\n" % op_str, ValClr)
+        out, _ = DisplayValue(v2, startBit, fields=fieldDefs)
+        data += out
+        data += P("=\n", ValClr)
+        out, _ = DisplayValue(result, startBit, fields=fieldDefs)
+        data += out
+        if fieldDefs:
+            data += DisplayFields(result, fieldDefs)
+
+    elif bitwiseOp == 'diff':
+        if len(args) != 2:
+            sys.stdout.write(P("ERROR: --diff requires exactly 2 values\n",
+                               BitClr))
+            Usage()
+        v1 = ParseValue(args[0])
+        v2 = ParseValue(args[1])
+
+        # XOR gives us which bits differ
+        diffMask = v1 ^ v2
+
+        data += P("DIFF (changed bits highlighted):\n", ValClr)
+        out, _ = DisplayValue(v1, startBit, diffMask, fields=fieldDefs)
+        data += out
+        data += P("vs\n", ValClr)
+        out, _ = DisplayValue(v2, startBit, diffMask, fields=fieldDefs)
+        data += out
+
+        # Show field diff if fields defined
+        if fieldDefs:
+            data += DisplayFields(v1, fieldDefs, v2)
+
+        # Also show the XOR result
+        data += P("XOR (bits that differ):\n", ValClr)
+        out, _ = DisplayValue(diffMask, startBit, fields=fieldDefs)
+        data += out
+
+else:
+    # Normal mode - display each value
+    for i in args:
+
+        if resetBit:
+            sb = startBit
+
+        if i.find(",") != -1 or i.find("-") != -1:
+            v = GetBitArgsValue(i)
+        else:
+            v = int(i, 0)
+
+        # Determine width for transformations
+        if forceWidth:
+            width = forceWidth
+        else:
+            width = GetBitWidth(v)
+
+        # Apply transformations in order: set/clear, shift, rotate
+        if setBits:
+            setMask = GetBitArgsValue(setBits)
+            v = v | setMask
+
+        if clearBits:
+            clearMask = GetBitArgsValue(clearBits)
+            v = v & ~clearMask
+
+        if shiftLeft is not None:
+            mask = GetMaskForWidth(width)
+            v = (v << shiftLeft) & mask
+
+        if shiftRight is not None:
+            v = v >> shiftRight
+
+        if rotateLeft is not None:
+            v = RotateLeft(v, rotateLeft, width)
+
+        if rotateRight is not None:
+            v = RotateRight(v, rotateRight, width)
+
+        # Mask to forced width if specified
+        if forceWidth:
+            v = v & GetMaskForWidth(forceWidth)
+
+        # Compact mode - single line output
+        if compactMode:
+            data += DisplayCompact(v, width)
             continue
 
-        for _ in range(j):
+        # Format mode - custom output format
+        if formatStr:
+            data += FormatOutput(v, width, formatStr) + "\n"
+            continue
 
-            tmp = v & 0xffffffffffffffff
-            v >>= 64
-
-            data += P("    0x%016x\n" % tmp, ValueColor)
-            data += PGroup(64, sb, tmp)
-
-            sb += 64
+        # Display value with extras
+        out, sb = DisplayWithExtras(
+            v, sb, width, fieldDefs,
+            showDec, showOct, showBin, showSigned, showStats
+        )
+        data += out
 
 sys.stdout.write(data + str(Clear))
 sys.stdout.flush()
